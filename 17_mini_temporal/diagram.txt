@@ -1,0 +1,23 @@
+Mini Temporal (Temporal-like оркестратор)
+   ┌────────────────────────────────────────────────┐
+   │              Temporal Server                   │
+   │  ┌────────────┐  ┌────────────┐  ┌──────────┐  │
+   │  │  Workflow  │  │  Activity  │  │  Task    │  │
+   │  │   Engine   │  │   Worker   │  │  Queue   │  │
+   │  └──────┬─────┘  └─────┬──────┘  └──────────┘  │
+   └─────────┼──────────────┼───────────────────────┘
+             │              │
+             └──────┬───────┘
+                    │
+   ┌────────────────────────────────────────────┐
+   │             Workflow Code                  │
+   │                                            │
+   │  function OrderWorkflow()                  │
+   │    1. await Charge()        ◄── Activity   │
+   │    2. await Ship()          ◄── Activity   │
+   │    3. await Notify()        ◄── Activity   │
+   │                                            │
+   │  Retry:   3 times                          │
+   │  Timeout: 30s                              │
+   │  Signal:  cancel                           │
+   └────────────────────────────────────────────┘

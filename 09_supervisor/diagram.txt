@@ -1,0 +1,24 @@
+Supervisor (супервизор)
+   ┌──────────────────────────────────────┐
+   │            Supervisor                │
+   │  monitor --> restart --> healthcheck │
+   │  ┌─ restart strategies: ──────────┐  │
+   │  │ one_for_one                    │  │
+   │  │ one_for_all                    │  │
+   │  │ rest_for_one                   │  │
+   │  │ simple_one_for_one             │  │
+   │  └────────────────────────────────┘  │
+   └──────┬──────────────┬──────────────┬─┘
+          │ spawn        │ monitor      │ stop
+     ┌────▼────┐    ┌────▼────┐    ┌────▼────┐
+     │ Worker  │    │ Worker  │    │ Worker  │
+     │   A     │    │   B     │    │   C     │
+     │  run    │    │  run    │    │  run    │
+     │   ||    │    │   ||    │    │   ||    │
+     └────┬────┘    └────┬────┘    └────┬────┘
+          │              │              │
+          └──────────────┴──────────────┘
+                         │
+                         ▼
+                  Supervisor restarts workers
+                     worker comes back

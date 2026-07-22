@@ -1,0 +1,19 @@
+Backpressure (противодавление)
+        ┌──────────┐    ┌──────────┐    ┌──────────┐
+   ---> │ Producer │--->│  Queue   │--->│ Consumer │ --->
+        │  (fast)  │    │ bounded  │    │  (slow)  │
+        └──────────┘    │ cap = 10 │    └──────────┘
+                        └────┬─────┘
+                             │
+                  queue full -----> backpressure
+                             │
+                             ▼
+   ┌───────────────────────────────────────────┐
+   │          Backpressure strategies          │
+   │                                           │
+   │  1.  block    ---> producer waits         │
+   │  2.  drop     ---> new messages lost      │
+   │  3.  latest   ---> keep only the last     │
+   │  4.  throttle ---> producer slows down    │
+   │  5.  overflow ---> spill to disk          │
+   └───────────────────────────────────────────┘

@@ -1,0 +1,29 @@
+Circuit Breaker (предохранитель)
+                 ┌────────────────┐
+    ┌───────────>│    CLOSED      │ <──── normal
+    │            │  (closed)      │       operation
+    │            │ requests pass  │
+    │            └────────┬───────┘
+    │                     │ errors > threshold
+    │                     ▼
+    │             ┌────────────────┐
+    │             │     OPEN       │ <──── tripped!
+    │             │   (open)       │
+    │             │ requests fail  │
+    │             │ fast w/ error  │
+    │             └────────┬───────┘
+    │                      │ timeout
+    │                      ▼
+    │             ┌────────────────┐
+    │             │   HALF-OPEN    │ <──── probe
+    │             │  (semi-open)   │
+    │             │ trial request  │
+    │             └────────┬───────┘
+    │                      │
+    │            ┌─────────┼─────────┐
+    │            │         │         │
+    │         success    fail    success
+    │            │         │         │
+    │            ▼         ▼         ▼
+    │        CLOSED      OPEN     CLOSED
+    └─────  (reset)    (again)   (reset)

@@ -1,0 +1,13 @@
+Producer-Consumer (producer-consumer)
+   ┌──────────────┐   ┌──────────────┐   ┌──────────────┐
+   │  Producer 1  │-->│              │<--│  Consumer 1  │
+   │  (data src)  │   │              │   │ (processor)  │
+   └──────────────┘   │              │   └──────────────┘
+   ┌──────────────┐   │  Buffer /    │   ┌──────────────┐
+   │  Producer 2  │-->│ Shared Queue │<--│  Consumer 2  │
+   │  (data src)  │   │              │   │ (processor)  │
+   └──────────────┘   │  [ ][ ][ ]   │   └──────────────┘
+   ┌──────────────┐   │              │   ┌──────────────┐
+   │  Producer N  │-->│              │<--│  Consumer M  │
+   │  (data src)  │   └──────────────┘   │ (processor)  │
+   └──────────────┘                      └──────────────┘

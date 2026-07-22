@@ -1,0 +1,30 @@
+Pipeline (processing pipeline)
+
+      Input
+         │
+         ▼
+    ┌──────────┐
+    │ Stage 1  │   read / decode
+    │  fetch   │
+    └────┬─────┘
+         │ data
+         ▼
+    ┌──────────┐
+    │ Stage 2  │   transform / enrich
+    │ process  │
+    └────┬─────┘
+         │ data
+         ▼
+    ┌──────────┐
+    │ Stage 3  │   validate / filter
+    │ validate │
+    └────┬─────┘
+         │ data
+         ▼
+    ┌──────────┐
+    │ Stage N  │   output / store
+    │  output  │
+    └─────┬────┘
+          │
+          ▼
+       Output
