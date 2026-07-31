@@ -1,4 +1,34 @@
 IPC (Inter-Process Communication)
+
+Механизмы (см. отдельные файлы в этой папке):
+
+1. pipe.php — двусторонний канал stream_socket_pair
+   parent ─────────────▶ child   (задача "21")
+   parent ◀───────────── child   (результат "42")
+
+2. unix_socket.php — AF_UNIX сокет через файл в /tmp
+   server ◀──connect── client 1
+   server ──"pong"──▶ client 1
+   server ◀──connect── client 2
+   server ──"pong"──▶ client 2
+
+3. msg_queue.php — POSIX очередь сообщений в ядре
+   producer ──msg_send──▶ [queue] ◀──msg_receive── consumer
+   producer ──msg_send──▶ [queue] ◀──msg_receive── consumer
+   (producer и consumer не знают друг о друге)
+
+4. shmop.php — общий сегмент shared memory
+   writer ──shmop_write──▶ [shm] ◀──shmop_read── reader
+
+5. semaphore.php — семафор защищает счётчик в shared memory
+   3 процесса, каждый: sem_acquire → read → +1 → write → sem_release
+   итог: counter = 15 (без семафора обновления терялись бы)
+
+6. signals.php — сигналы как событие + pipe для данных
+   parent ──SIGUSR1/2──▶ child (обработчик)
+   parent ◀───────────── child (результат через pipe)
+
+Сводная схема:
    ┌──────────────┐         ┌──────────────┐
    │  Process A   │<------->│  Process B   │
    │              │  pipes  │              │
