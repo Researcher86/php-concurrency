@@ -1,30 +1,22 @@
 Pipeline (processing pipeline)
 
-      Input
-         │
-         ▼
-    ┌──────────┐
-    │ Stage 1  │   read / decode
-    │  fetch   │
-    └────┬─────┘
-         │ data
-         ▼
-    ┌──────────┐
-    │ Stage 2  │   transform / enrich
-    │ process  │
-    └────┬─────┘
-         │ data
-         ▼
-    ┌──────────┐
-    │ Stage 3  │   validate / filter
-    │ validate │
-    └────┬─────┘
-         │ data
-         ▼
-    ┌──────────┐
-    │ Stage N  │   output / store
-    │  output  │
-    └─────┬────┘
-          │
-          ▼
-       Output
+Реализация: «конвейер» как | в Unix shell.
+Source пишет строки в pipe1, Stage1 (strtoupper) читает из pipe1
+и пишет в pipe2, Stage2 (strrev) читает из pipe2 и echo.
+EOF — естественное завершение: Source закрывает pipe → Stage1 дочитывает
+и закрывает свой pipe → Stage2 дочитывает и выходит.
+
+    ┌────────────┐      pipe1      ┌────────────┐      pipe2      ┌────────────┐
+    │   Source   │ ──────────────► │  Stage 1   │ ──────────────► │  Stage 2   │
+    │ data-1..5  │   fwrite /      │ strtoupper │   fwrite /      │  strrev    │
+    │            │   fgets         │            │   fgets         │            │
+    └────────────┘                 └────────────┘                 └────────────┘
+         │                              │                              │
+         ▼ echo                         ▼ echo                         ▼ echo
+    "sent data-1"                  "data-1 -> DATA-1"            "DATA-1 -> 1-ATAD"
+
+Каждая ступень:                                         
+  while (($line = fgets($in)) !== false) {               
+    $result = transform($line);                          
+    fwrite($out, "$result\n");                           
+  }
