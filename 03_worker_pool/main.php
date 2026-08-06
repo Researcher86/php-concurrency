@@ -2,16 +2,6 @@
 
 pcntl_async_signals(true);
 
-function initQueue(): SysvMessageQueue
-{
-    return msg_get_queue(ftok(__FILE__, 'm'), 0666);
-}
-
-function removeQueue(SysvMessageQueue $queue): bool
-{
-    return msg_remove_queue($queue);
-}
-
 function worker(SysvMessageQueue $queue, callable $callback, bool &$isStopWorker): int
 {
     $pid = pcntl_fork();
@@ -79,7 +69,7 @@ function wait(): void
     }
 }
 
-$queue = initQueue();
+$queue = msg_get_queue(ftok(__FILE__, 'm'), 0666);
 
 $workersPids = [];
 $isStopMaster = false;
@@ -140,4 +130,4 @@ if (!$isStopMaster) {
 }
 
 wait();
-removeQueue($queue);
+msg_remove_queue($queue);

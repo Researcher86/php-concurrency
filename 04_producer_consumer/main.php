@@ -2,16 +2,6 @@
 
 pcntl_async_signals(true);
 
-function initQueue(): SysvMessageQueue
-{
-    return msg_get_queue(ftok(__FILE__, 'm'), 0666);
-}
-
-function removeQueue(SysvMessageQueue $queue): bool
-{
-    return msg_remove_queue($queue);
-}
-
 function producer(SysvMessageQueue $queue, int $id, int $msgCount): int
 {
     $pid = pcntl_fork();
@@ -70,7 +60,7 @@ const CONSUMER_COUNT = 3;
 const MSG_PER_PRODUCER = 10;
 const TERMINATOR = "\0__TERM__\0";
 
-$queue = initQueue();
+$queue = msg_get_queue(ftok(__FILE__, 'm'), 0666);
 
 $producerPids = [];
 for ($i = 0; $i < PRODUCER_COUNT; $i++) {
@@ -89,7 +79,7 @@ $cleanup = function () use ($producerPids, $consumerPids, $queue) {
         posix_kill($pid, SIGTERM);
     }
     while (pcntl_wait($status) !== -1);
-    removeQueue($queue);
+    msg_remove_queue($queue);
     exit(0);
 };
 pcntl_signal(SIGINT, $cleanup);
@@ -110,4 +100,4 @@ foreach ($consumerPids as $pid) {
     pcntl_waitpid($pid, $status);
 }
 
-removeQueue($queue);
+msg_remove_queue($queue);

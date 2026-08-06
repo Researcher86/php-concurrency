@@ -9,16 +9,6 @@ const TASK_COUNT = 12;
 const WORKER_COUNT = 3;
 const TERMINATOR = "\0__TERM__\0";
 
-function initQueue(): SysvMessageQueue
-{
-    return msg_get_queue(ftok(__FILE__, 'm'), 0666);
-}
-
-function removeQueue(SysvMessageQueue $queue): bool
-{
-    return msg_remove_queue($queue);
-}
-
 // Source: отправляет задачи и terminator'ы (по одному на каждого worker'а)
 function source(SysvMessageQueue $queue, int $taskCount): int
 {
@@ -68,7 +58,7 @@ function worker(SysvMessageQueue $queue, int $id): int
     return $pid;
 }
 
-$queue = initQueue();
+$queue = msg_get_queue(ftok(__FILE__, 'm'), 0666);
 
 // Source: раздаёт задачи в очередь
 $sourcePid = source($queue, TASK_COUNT);
@@ -87,4 +77,4 @@ foreach ($workerPids as $pid) {
     pcntl_waitpid($pid, $status);
 }
 
-removeQueue($queue);
+msg_remove_queue($queue);
