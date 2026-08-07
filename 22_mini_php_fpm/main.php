@@ -14,6 +14,9 @@ $resultQueue = msg_get_queue(ftok(__FILE__, 'r'), 0666);
 // Воркер: крутится, пока не увидит STOP или не упрётся в max_requests
 $spawnWorker = function () use ($requestQueue, $resultQueue): int {
     $pid = pcntl_fork();
+    if ($pid === -1) {
+        die('fork failed');
+    }
     if ($pid === 0) {
         $handled = 0;
         while (true) {

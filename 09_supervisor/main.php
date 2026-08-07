@@ -1,17 +1,21 @@
 <?php
 
-pcntl_async_signals(true);
-
 // Supervisor: запускает worker'ов и перезапускает их в случае падения.
 // Стратегия: one_for_one — перезапускается только упавший worker.
 // Мониторинг: pcntl_waitpid с WNOHANG опрашивает каждого воркера без блокировки.
+
+pcntl_async_signals(true);
 
 const WORKER_COUNT = 3;
 
 // Worker: имитирует работу, периодически падает с exit(1).
 // Супервизор обнаруживает смерть через WNOHANG и перезапускает.
+// Цикл воркера проверяет унаследованный флаг $isStop: по SIGTERM он
+// сам выходит из цикла (мягкая остановка, без зависания waitpid).
 function worker(int $id): int
 {
+    global $isStop;
+
     $pid = pcntl_fork();
 
     if ($pid === -1) {
@@ -21,7 +25,7 @@ function worker(int $id): int
     if ($pid === 0) {
         $iteration = 0;
 
-        while (true) {
+        while (!$isStop) {
             echo "Worker$id (" . getmypid() . "): running iteration $iteration\n";
             usleep(rand(200000, 500000));
 

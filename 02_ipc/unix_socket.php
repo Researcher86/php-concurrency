@@ -15,7 +15,9 @@
 
 $socketPath = '/tmp/ipc_example.sock';
 
-@unlink($socketPath);
+if (file_exists($socketPath)) {
+    unlink($socketPath);
+}
 
 $server = stream_socket_server('unix://' . $socketPath, $errno, $errstr);
 if (!$server) {

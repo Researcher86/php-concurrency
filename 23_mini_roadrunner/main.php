@@ -13,6 +13,9 @@ $resultQueue = msg_get_queue(ftok(__FILE__, 'r'), 0666);
 
 $spawnWorker = function () use ($jobQueue, $resultQueue): int {
     $pid = pcntl_fork();
+    if ($pid === -1) {
+        die('fork failed');
+    }
     if ($pid === 0) {
         // Persistent-цикл: один процесс обслуживает много jobs
         while (true) {

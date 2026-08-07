@@ -1,9 +1,9 @@
 <?php
 
-pcntl_async_signals(true);
-
 // Master-Worker: мастер раздаёт задачи через taskQueue, управляет через
 // ctrlQueue, воркеры отправляют результаты через resultQueue.
+
+pcntl_async_signals(true);
 
 const TASK_COUNT = 12;
 const WORKER_COUNT = 3;
