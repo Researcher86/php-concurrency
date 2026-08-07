@@ -1,0 +1,30 @@
+Reliability Fundamentals — четыре базовые темы надёжности
+
+  1. Timeout
+     Worker ──► external API ──► hang forever
+       │
+       └── родитель ждёт до дедлайна → TIMEOUT → задача failed
+       Поздний ответ после таймаута игнорируется (как в RPC).
+
+  2. Cancellation
+     Cooperative            Forced
+     worker проверяет флаг   posix_kill($pid, SIGKILL)
+     (SIGTERM → flag)        мгновенная смерть, без cleanup
+     аккуратный выход        SIGKILL нельзя перехватить
+
+  3. Delivery Semantics
+     At-most-once           At-least-once
+     receive→process→crash   receive→crash ДО ack → requeue
+     задача потеряна         задача может выполниться ДВАЖДЫ
+
+  4. Idempotency
+     task #42 ──► charge ──► crash ──► retry ──► charge AGAIN
+                            │
+                            ▼
+     idempotency_key = 42: повторный вызов НЕ меняет эффект
+
+─────────────────────────────────────────
+Сложность: ⭐⭐⭐
+Syscalls:  fork(), waitpid(), SIGTERM, SIGKILL, msgget(), msgrcv(), semget(), shmget()
+Real world: HTTP timeouts, Kubernetes terminationGracePeriod, RabbitMQ manual-ack,
+            Stripe idempotency keys, SQS visibility timeout
