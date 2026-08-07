@@ -57,14 +57,13 @@ for ($i = 1; $i <= REQUEST_COUNT; $i++) {
 // Упавший (из-за max_requests) воркер тут же перезапускается.
 $results = 0;
 $restarts = 0;
-$reapedPids = [];
 
 while ($results < REQUEST_COUNT) {
-    // подбираем результаты
+    // подбираем результаты (неблокирующе)
     $msg = '';
     $type = 0;
     $error = null;
-    $got = @msg_receive($resultQueue, 1, $type, 1024, $msg, true, 0, $error);
+    $got = msg_receive($resultQueue, 1, $type, 1024, $msg, true, MSG_IPC_NOWAIT, $error);
     if ($got) {
         $results++;
     }

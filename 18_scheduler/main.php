@@ -19,6 +19,9 @@ for ($w = 1; $w <= WORKER_COUNT; $w++) {
 
 // Источник задач
 $sourcePid = pcntl_fork();
+if ($sourcePid === -1) {
+    die('fork failed');
+}
 if ($sourcePid === 0) {
     for ($i = 1; $i <= TASK_COUNT; $i++) {
         msg_send($taskQueue, 1, "task $i");
@@ -31,6 +34,9 @@ if ($sourcePid === 0) {
 $workerPids = [];
 for ($w = 1; $w <= WORKER_COUNT; $w++) {
     $pid = pcntl_fork();
+    if ($pid === -1) {
+        die('fork failed');
+    }
     if ($pid === 0) {
         while (true) {
             $msg = '';

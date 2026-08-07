@@ -22,6 +22,9 @@ $rooms = ['general' => ['A', 'B'], 'random' => ['C']];
 function client(SysvMessageQueue $brokerQueue, SysvMessageQueue $inbox, array $messages): int
 {
     $pid = pcntl_fork();
+    if ($pid === -1) {
+        die('fork failed');
+    }
     if ($pid === 0) {
         foreach ($messages as $message) {
             msg_send($brokerQueue, 1, $message);

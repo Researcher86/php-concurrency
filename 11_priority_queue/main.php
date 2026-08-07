@@ -10,6 +10,9 @@ $queue = msg_get_queue(ftok(__FILE__, 'm'), 0666);
 
 // Producer: шлёт задачи с разным приоритетом
 $producerPid = pcntl_fork();
+if ($producerPid === -1) {
+    die('fork failed');
+}
 if ($producerPid === 0) {
     $taskId = 1;
     for ($i = 1; $i <= TASK_COUNT; $i++) {
@@ -23,6 +26,9 @@ if ($producerPid === 0) {
 
 // Worker: забирает задачи по приоритету (1 → 2 → 3)
 $workerPid = pcntl_fork();
+if ($workerPid === -1) {
+    die('fork failed');
+}
 if ($workerPid === 0) {
     while (true) {
         $msg = '';

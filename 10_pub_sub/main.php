@@ -10,6 +10,9 @@ const MSG_COUNT = 5;
 [$sub2Read, $sub2Write] = stream_socket_pair(STREAM_PF_UNIX, STREAM_SOCK_STREAM, STREAM_IPPROTO_IP);
 
 $sub1Pid = pcntl_fork();
+if ($sub1Pid === -1) {
+    die('fork failed');
+}
 if ($sub1Pid === 0) {
     fclose($sub1Write);
     fclose($sub2Read);
@@ -22,6 +25,9 @@ if ($sub1Pid === 0) {
 }
 
 $sub2Pid = pcntl_fork();
+if ($sub2Pid === -1) {
+    die('fork failed');
+}
 if ($sub2Pid === 0) {
     fclose($sub2Write);
     fclose($sub1Read);
@@ -34,6 +40,9 @@ if ($sub2Pid === 0) {
 }
 
 $pub1Pid = pcntl_fork();
+if ($pub1Pid === -1) {
+    die('fork failed');
+}
 if ($pub1Pid === 0) {
     fclose($sub1Read);
     fclose($sub2Read);
@@ -49,6 +58,9 @@ if ($pub1Pid === 0) {
 }
 
 $pub2Pid = pcntl_fork();
+if ($pub2Pid === -1) {
+    die('fork failed');
+}
 if ($pub2Pid === 0) {
     fclose($sub1Read);
     fclose($sub1Write);

@@ -39,6 +39,9 @@ function runWorkflow(array $definition): array
 
         // Activity выполняется в отдельном процессе
         $pid = pcntl_fork();
+        if ($pid === -1) {
+            die('fork failed');
+        }
         if ($pid === 0) {
             $ok = call_user_func($step['work']);
             exit($ok ? 0 : 1);

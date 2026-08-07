@@ -29,6 +29,9 @@ $messageSize = max(100, (int) floor($queueStats['msg_qbytes'] / TARGET_CAPACITY)
 // Быстрый Producer: шлёт задачи подряд, без пауз. Полную очередь он
 // не "видит" — msg_send просто блокируется, пока не появится место.
 $producerPid = pcntl_fork();
+if ($producerPid === -1) {
+    die('fork failed');
+}
 if ($producerPid === 0) {
     echo 'Producer: cap ~' . TARGET_CAPACITY . ' msgs (msg_qbytes=' . $queueStats['msg_qbytes'] . ", msg=$messageSize B)\n";
 
@@ -64,6 +67,9 @@ if ($producerPid === 0) {
 
 // Медленный Consumer: разбирает очередь по одному сообщению (30мс на задачу)
 $consumerPid = pcntl_fork();
+if ($consumerPid === -1) {
+    die('fork failed');
+}
 if ($consumerPid === 0) {
     $received = 0;
     while (true) {

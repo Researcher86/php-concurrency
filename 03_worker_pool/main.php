@@ -1,5 +1,10 @@
 <?php
 
+// Worker Pool (пул воркеров): N воркеров-процессов разбирают общую очередь
+// задач. Остановка — сигналом: мастер шлёт SIGTERM, воркер доедает очередь
+// (drain) и выходит. Сигнальную диспозицию наследуют при fork, поэтому
+// сигналы не теряются.
+
 pcntl_async_signals(true);
 
 function worker(SysvMessageQueue $queue, callable $callback, bool &$isStopWorker): int

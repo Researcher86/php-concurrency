@@ -23,6 +23,9 @@ $controlQueue = msg_get_queue(ftok(__FILE__, 'g'), 0666);
 // Charge падает на 1-й и 2-й попытке (демо retry), SlowCheck работает дольше
 // таймаута (демо timeout), остальные всегда успешны.
 $workerPid = pcntl_fork();
+if ($workerPid === -1) {
+    die('fork failed');
+}
 if ($workerPid === 0) {
     $chargeAttempts = 0;
 
@@ -65,6 +68,9 @@ if ($workerPid === 0) {
 
 // Оператор: по команде 'go' от движка шлёт сигнал 'cancel' в signalQueue
 $operatorPid = pcntl_fork();
+if ($operatorPid === -1) {
+    die('fork failed');
+}
 if ($operatorPid === 0) {
     $cmd = '';
     $type = 0;

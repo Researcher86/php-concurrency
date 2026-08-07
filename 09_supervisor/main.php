@@ -14,6 +14,10 @@ function worker(int $id): int
 {
     $pid = pcntl_fork();
 
+    if ($pid === -1) {
+        die('fork failed');
+    }
+
     if ($pid === 0) {
         $iteration = 0;
 
@@ -77,4 +81,6 @@ foreach ($workers as $id => $pid) {
     posix_kill($pid, SIGTERM);
 }
 
-while (pcntl_wait($status) !== -1);
+while (pcntl_wait($status) !== -1) {
+    // reap
+}

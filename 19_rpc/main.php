@@ -10,6 +10,9 @@ $responseQueue = msg_get_queue(ftok(__FILE__, 'r'), 0666);
 
 // RPC-сервер: регистрирует процедуры и исполняет вызовы
 $serverPid = pcntl_fork();
+if ($serverPid === -1) {
+    die('fork failed');
+}
 if ($serverPid === 0) {
     $procedures = [
         'add' => fn($a, $b) => $a + $b,

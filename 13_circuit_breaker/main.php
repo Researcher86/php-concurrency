@@ -17,6 +17,9 @@ $resultQueue = msg_get_queue(ftok(__FILE__, 'r'), 0666);
 
 // Сервис (зависимость): отвечает на каждый запрос. Первые 12 — ошибкой.
 $servicePid = pcntl_fork();
+if ($servicePid === -1) {
+    die('fork failed');
+}
 if ($servicePid === 0) {
     $request = 0;
 

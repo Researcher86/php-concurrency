@@ -25,6 +25,10 @@ function worker(SysvMessageQueue $ctrlQueue, SysvMessageQueue $taskQueue, SysvMe
 {
     $pid = pcntl_fork();
 
+    if ($pid === -1) {
+        die('fork failed');
+    }
+
     if ($pid === 0) {
         while (true) {
             $msgType = 0;

@@ -1,9 +1,9 @@
 <?php
 
-pcntl_async_signals(true);
-
 // Fan-Out: source раздаёт задачи N worker'ам через общую очередь.
 // Каждый worker забирает следующую свободную задачу (competing consumers).
+
+pcntl_async_signals(true);
 
 const TASK_COUNT = 12;
 const WORKER_COUNT = 3;
@@ -13,6 +13,10 @@ const TERMINATOR = "\0__TERM__\0";
 function source(SysvMessageQueue $queue, int $taskCount): int
 {
     $pid = pcntl_fork();
+
+    if ($pid === -1) {
+        die('fork failed');
+    }
 
     if ($pid === 0) {
         for ($i = 1; $i <= $taskCount; $i++) {
@@ -32,6 +36,10 @@ function source(SysvMessageQueue $queue, int $taskCount): int
 function worker(SysvMessageQueue $queue, int $id): int
 {
     $pid = pcntl_fork();
+
+    if ($pid === -1) {
+        die('fork failed');
+    }
 
     if ($pid === 0) {
         while (true) {

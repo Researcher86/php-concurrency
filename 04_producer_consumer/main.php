@@ -1,6 +1,15 @@
 <?php
 
+// Producer-Consumer: N producer'ов шлют сообщения в общую очередь,
+// M консюмеров их разбирают (competing consumers). Завершение — по
+// terminator'у на каждого консюмера, отправленному после всех продюсеров.
+
 pcntl_async_signals(true);
+
+const PRODUCER_COUNT = 2;
+const CONSUMER_COUNT = 3;
+const MSG_PER_PRODUCER = 10;
+const TERMINATOR = "\0__TERM__\0";
 
 function producer(SysvMessageQueue $queue, int $id, int $msgCount): int
 {
@@ -55,11 +64,6 @@ function consumer(SysvMessageQueue $queue): int
     return $pid;
 }
 
-const PRODUCER_COUNT = 2;
-const CONSUMER_COUNT = 3;
-const MSG_PER_PRODUCER = 10;
-const TERMINATOR = "\0__TERM__\0";
-
 $queue = msg_get_queue(ftok(__FILE__, 'm'), 0666);
 
 $producerPids = [];
@@ -78,7 +82,9 @@ $cleanup = function () use ($producerPids, $consumerPids, $queue) {
     foreach (array_merge($producerPids, $consumerPids) as $pid) {
         posix_kill($pid, SIGTERM);
     }
-    while (pcntl_wait($status) !== -1);
+    while (pcntl_wait($status) !== -1) {
+        // reap
+    }
     msg_remove_queue($queue);
     exit(0);
 };

@@ -39,6 +39,9 @@ function actorC(SysvMessageQueue $queueB, SysvMessageQueue $queueC): void
 
 // Actor A: состояние = счётчик. На каждый чётный inc шлёт tick актору B.
 $pidA = pcntl_fork();
+if ($pidA === -1) {
+    die('fork failed');
+}
 if ($pidA === 0) {
     $counter = 0;
 
@@ -68,6 +71,9 @@ if ($pidA === 0) {
 
 // Actor B: копит tick'и, на первый спавнит Actor C.
 $pidB = pcntl_fork();
+if ($pidB === -1) {
+    die('fork failed');
+}
 if ($pidB === 0) {
     $items = [];
     $childPid = null;
@@ -88,6 +94,9 @@ if ($pidB === 0) {
                 // Спавн дочернего актора при первом tick'е
                 if ($childPid === null) {
                     $childPid = pcntl_fork();
+                    if ($childPid === -1) {
+                        die('fork failed');
+                    }
                     if ($childPid === 0) {
                         actorC($queueB, $queueC);
                         exit(0);

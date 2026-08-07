@@ -2,6 +2,8 @@
 
 // Fan-In: N worker'ов пишут результат в shared memory, родитель собирает.
 
+const WORKER_COUNT = 3;
+
 function initSharedMemory(): SysvSharedMemory
 {
     $shmKey = ftok(__FILE__, 's');
@@ -33,8 +35,6 @@ function worker(SysvSharedMemory $shmId, int $wId): int
 
     return $pid;
 }
-
-const WORKER_COUNT = 3;
 
 $sharedMemory = initSharedMemory();
 
