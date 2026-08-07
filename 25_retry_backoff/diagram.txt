@@ -1,0 +1,21 @@
+Retry + Exponential Backoff
+   Task
+    │
+    ├── attempt 1 ──► FAIL ──► wait 100ms
+    │
+    ├── attempt 2 ──► FAIL ──► wait 200ms
+    │
+    ├── attempt 3 ──► FAIL ──► wait 400ms
+    │
+    └── attempt 4 ──► FAIL ──► wait 800ms
+                        │
+                        ▼
+                  give up (max attempts)
+
+   Задержка между попытками растёт экспоненциально,
+   чтобы не долбить упавший сервис постоянным потоком запросов.
+
+─────────────────────────────────────────
+Сложность: ⭐⭐
+Syscalls:  fork(), msgget(), msgsnd(), msgrcv(), msgctl(), waitpid()
+Real world: RabbitMQ retry policies, AWS SDK (retry modes), Stripe, Temporal
