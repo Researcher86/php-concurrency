@@ -49,3 +49,8 @@ IPC (Inter-Process Communication)
                  │  POSIX msg  │
                  │   queues    │
                  └─────────────┘
+
+─────────────────────────────────────────
+Сложность: ⭐⭐
+Syscalls:  pipe(), socketpair(), write(), read(), kill(), signal(), msgget(), msgsnd(), msgrcv(), shmget(), shmat(), semget(), semop()
+Real world: DBus, gRPC, RabbitMQ — каналы IPC как основа всего

@@ -20,3 +20,8 @@ EOF — естественное завершение: Source закрывает
     $result = transform($line);                          
     fwrite($out, "$result\n");                           
   }
+
+─────────────────────────────────────────
+Сложность: ⭐⭐⭐
+Syscalls:  socketpair(), write(), read(), close()
+Real world: shell pipes (|), GNU Parallel, Apache Beam, ffmpeg pipe chain

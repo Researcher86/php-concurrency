@@ -16,3 +16,8 @@ Fork (разветвление)
    │        Parent           │
    │   (results collected)   │
    └─────────────────────────┘
+
+─────────────────────────────────────────
+Сложность: ⭐
+Syscalls:  fork(), getpid(), wait(), exit()
+Real world: PHP-FPM (pm.start_servers), nginx prefork workers, Apache prefork MPM

@@ -34,3 +34,8 @@ Actor Model (акторная модель)
    * Each actor is isolated
    * Communication only via messages
    * No shared state
+
+─────────────────────────────────────────
+Сложность: ⭐⭐⭐⭐
+Syscalls:  fork(), msgget(), msgsnd(), msgrcv(), msgctl(), waitpid()
+Real world: Erlang/OTP, Akka, Orleans (.NET), amphp/parallel

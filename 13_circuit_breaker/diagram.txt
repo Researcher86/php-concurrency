@@ -27,3 +27,8 @@ Circuit Breaker (предохранитель)
     │            ▼         ▼         ▼
     │        CLOSED      OPEN     CLOSED
     └─────  (reset)    (again)   (reset)
+
+─────────────────────────────────────────
+Сложность: ⭐⭐⭐
+Syscalls:  fork(), waitpid(), kill(), signal()
+Real world: Polly (.NET), resilience4j, Hystrix (Java), fail2ban

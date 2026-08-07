@@ -19,3 +19,8 @@ Fan-Out (fan-out dispatch)
       ┌────▼─────────────┘─────────────┘────┐
       │    All workers run in parallel      │
       └─────────────────────────────────────┘
+
+─────────────────────────────────────────
+Сложность: ⭐⭐
+Syscalls:  fork(), msgget(), msgsnd(), msgrcv(), msgctl()
+Real world: RabbitMQ fanout exchange, Kafka consumer group, nginx load balancer

@@ -23,3 +23,7 @@ Master-Worker (master-worker)
    ┌──┴─────────┴─────────┴─────────┴────┐
    │ Workers send results, healthbeats   │
    └─────────────────────────────────────┘
+─────────────────────────────────────────
+Сложность: ⭐⭐⭐
+Syscalls:  fork(), msgget(), msgsnd(), msgrcv(), msgctl(), waitpid()
+Real world: Celery, Sidekiq, Gearman, Redis queues

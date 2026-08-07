@@ -22,3 +22,8 @@ Supervisor (супервизор)
                          ▼
                   Supervisor restarts workers
                      worker comes back
+
+─────────────────────────────────────────
+Сложность: ⭐⭐⭐⭐
+Syscalls:  fork(), waitpid() (WNOHANG), kill(), signal()
+Real world: supervisord, systemd, PM2, Erlang/OTP supervisor, PHP-FPM master

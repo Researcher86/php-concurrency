@@ -21,3 +21,8 @@ Mini Messenger (мини-мессенджер)
    │  └──────────────────────────────┘  │
    │  dispatch ──> broadcast            │
    └────────────────────────────────────┘
+
+─────────────────────────────────────────
+Сложность: ⭐⭐⭐⭐⭐
+Syscalls:  fork(), msgget(), msgsnd(), msgrcv(), msgctl(), waitpid()
+Real world: RabbitMQ, Redis Pub/Sub, NATS, IRC server, Matrix

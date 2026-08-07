@@ -19,3 +19,8 @@ Workflow Engine (движок рабочих процессов)
    │    State: running / paused / failed      │
    │    History: [event1, event2, ...]        │
    └──────────────────────────────────────────┘
+
+─────────────────────────────────────────
+Сложность: ⭐⭐⭐⭐
+Syscalls:  fork(), waitpid(), exit() (код возврата шага)
+Real world: Temporal, Camunda, n8n, Laravel Workflow, GitHub Actions

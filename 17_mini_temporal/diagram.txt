@@ -21,3 +21,8 @@ Mini Temporal (Temporal-like оркестратор)
    │  Timeout: 30s                              │
    │  Signal:  cancel                           │
    └────────────────────────────────────────────┘
+
+─────────────────────────────────────────
+Сложность: ⭐⭐⭐⭐⭐
+Syscalls:  fork(), waitpid(), msgget(), msgsnd(), msgrcv(), kill(), signal()
+Real world: Temporal, Cadence, Prefect, Dagster

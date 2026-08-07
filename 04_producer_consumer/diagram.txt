@@ -11,3 +11,8 @@ Producer-Consumer (producer-consumer)
    │  Producer N  │-->│              │<--│  Consumer M  │
    │  (data src)  │   └──────────────┘   │ (processor)  │
    └──────────────┘                      └──────────────┘
+
+─────────────────────────────────────────
+Сложность: ⭐⭐⭐
+Syscalls:  fork(), msgget(), msgsnd(), msgrcv(), msgctl(), waitpid()
+Real world: RabbitMQ, Beanstalkd, Laravel Queues, Go channels

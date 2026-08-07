@@ -28,3 +28,8 @@ Pub-Sub (publisher-subscriber)
 
     Subscribers receive
     only their topics
+
+─────────────────────────────────────────
+Сложность: ⭐⭐⭐
+Syscalls:  fork(), socketpair(), write(), read(), close()
+Real world: Redis Pub/Sub, RabbitMQ topic exchange, Google Pub/Sub, ZeroMQ

@@ -28,3 +28,8 @@ Worker Pool (pool of workers)
 Реальный канал результатов = вторая очередь/коллектор, куда воркеры
 складывали бы итог (см. уроки 09/12). В этой версии результата нет —
 задачи просто потребляются, вывод = лог в консоль.
+
+─────────────────────────────────────────
+Сложность: ⭐⭐⭐
+Syscalls:  fork(), waitpid(), msgget(), msgsnd(), msgrcv(), msgctl(), usleep()
+Real world: spatie/fork, amphp/parallel, OpenSwoole, PHP-FPM pool, RoadRunner

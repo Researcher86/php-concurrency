@@ -15,3 +15,8 @@ Fan-In (results aggregation)
                                │  Output  │
                                │  stream  │
                                └──────────┘
+
+─────────────────────────────────────────
+Сложность: ⭐⭐
+Syscalls:  fork(), shmget(), shmat(), shmdt(), shmctl()
+Real world: MapReduce (reduce), Kafka -> aggregator, Flink windowing

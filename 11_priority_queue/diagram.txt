@@ -25,3 +25,8 @@ Priority Queue (priority queue)
        │       Worker       │
        │  takes T4 (high)   │
        └────────────────────┘
+
+─────────────────────────────────────────
+Сложность: ⭐⭐⭐
+Syscalls:  fork(), msgget(), msgsnd(), msgrcv() (type = priority), msgctl()
+Real world: Celery (priority), RabbitMQ priority queues, Kubernetes QoS classes

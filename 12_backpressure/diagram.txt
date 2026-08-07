@@ -17,3 +17,8 @@ Backpressure (противодавление)
    │  4.  throttle ---> producer slows down    │
    │  5.  overflow ---> spill to disk          │
    └───────────────────────────────────────────┘
+
+─────────────────────────────────────────
+Сложность: ⭐⭐⭐
+Syscalls:  fork(), msgget(), msgsnd() (blocking), msgrcv(), msgctl()
+Real world: TCP flow control, RabbitMQ prefetch, Reactive Streams, Kafka consumer lag
