@@ -1,0 +1,19 @@
+Parallel Map (параллельный map)
+   $items ──► parallelMap($items, fn, workers: N)
+                 │
+                 ▼
+              Map
+                 │
+                 ▼
+            Fan-Out ──► Worker Pool ──► Fan-In
+                 │                           │
+                 ▼                           ▼
+            порядок сохраняется        $results
+
+   Собирает результаты по индексу входного элемента,
+   как array_map(), но в N процессах параллельно.
+
+─────────────────────────────────────────
+Сложность: ⭐⭐⭐
+Syscalls:  fork(), msgget(), msgsnd(), msgrcv(), msgctl(), waitpid()
+Real world: parallel-map в Go/Python, MapReduce, array_map + parallel ext
