@@ -1,0 +1,26 @@
+Process Lifecycle (жизненный цикл процесса)
+
+   fork() ──► child ──► run ──► exit()
+                                  │
+                                  │   ядро шлёт родителю SIGCHLD
+                                  ▼
+                            zombie (запись в таблице процессов)
+                                  │
+                                  │   pcntl_waitpid()
+                                  ▼
+                            reap (запись удалена)
+
+   Состояния и понятия:
+     running   — процесс исполняется
+     zombie    — умер, но родитель ещё не вызвал wait: запись осталась
+     orphan    — родитель умер раньше ребёнка: ребёнка "усыновляет" init (PID 1)
+     SIGCHLD   — сигнал ядра родителю: "у тебя умер ребёнок"
+     waitpid   — системный вызов, который снимает зомби и возвращает статус
+
+   Правило: каждый fork() должен быть сбалансирован waitpid().
+   Нет waitpid → зомби. Нет родителя → сироты репит PID 1 (tini).
+
+─────────────────────────────────────────
+Сложность: ⭐
+Syscalls:  fork(), exit(), waitpid(), SIGCHLD, getppid()
+Real world: supervisor'ы (PM2, systemd), PHP-FPM master, kubernetes kubelet
