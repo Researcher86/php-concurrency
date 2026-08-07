@@ -2,9 +2,10 @@ IPC (Inter-Process Communication)
 
 Механизмы (см. отдельные файлы в этой папке):
 
-1. pipe.php — двусторонний канал stream_socket_pair
+1. pipe.php — Unix socket pair (stream_socket_pair): двунаправленный канал
    parent ─────────────▶ child   (задача "21")
    parent ◀───────────── child   (результат "42")
+   (настоящий pipe() однонаправленный и в PHP встроенно недоступен)
 
 2. unix_socket.php — AF_UNIX сокет через файл в /tmp
    server ◀──connect── client 1
@@ -12,7 +13,7 @@ IPC (Inter-Process Communication)
    server ◀──connect── client 2
    server ──"pong"──▶ client 2
 
-3. msg_queue.php — POSIX очередь сообщений в ядре
+3. msg_queue.php — System V очередь сообщений в ядре
    producer ──msg_send──▶ [queue] ◀──msg_receive── consumer
    producer ──msg_send──▶ [queue] ◀──msg_receive── consumer
    (producer и consumer не знают друг о друге)
@@ -46,7 +47,7 @@ IPC (Inter-Process Communication)
           └─────────────┬───────────┘
                         │
                  ┌──────▼──────┐
-                 │  POSIX msg  │
+                 │  SysV msg   │
                  │   queues    │
                  └─────────────┘
 

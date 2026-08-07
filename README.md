@@ -1,8 +1,13 @@
 # PHP Concurrency
 
-Шпаргалка по многопроцессной (IPC) разработке на PHP.
-Каждый урок — папка с `diagram.txt` (ASCII-схема паттерна) и работающим
-`main.php` (или набором файлов), который можно запустить в Docker.
+Курс по многопроцессной (IPC) разработке на PHP: 30 уроков от `pcntl_fork`
+до мини-рантайма в духе PHP-FPM/RoadRunner.
+
+Каждый урок — папка с `README.md` (мини-учебник), `diagram.txt` (ASCII-схема
+паттерна) и работающим `main.php` (или набором файлов), который можно запустить
+в Docker. Уроки идут по нарастающей сложности, но каждый можно запускать
+отдельно. Для быстрого повторения — таблицы ниже и блоки **Real world**
+в каждом README.
 
 ## Требования
 
@@ -75,5 +80,19 @@ docker compose exec -T php sh -c \
 | 22 | `22_mini_php_fpm` | Mini PHP-FPM | пул воркеров + `pm.max_requests`-рестарт |
 | 23 | `23_mini_roadrunner` | Mini RoadRunner | persistent-воркеры, crash + respawn |
 
+### 24–30. Надёжность, утилиты и итог
+
+| # | Папка | Тема | Идея |
+|---|-------|------|------|
+| 24 | `24_graceful_shutdown` | Graceful Shutdown | drain очереди и мягкая остановка по SIGTERM |
+| 25 | `25_retry_backoff` | Retry Backoff | экспоненциальная задержка между попытками |
+| 26 | `26_dead_letter_queue` | Dead Letter Queue | неразрешимые задачи → отдельная очередь |
+| 27 | `27_rate_limiter` | Rate Limiter | общий лимит через shm + семафор |
+| 28 | `28_barrier` | Barrier | все ждут самого медленного между фазами |
+| 29 | `29_parallel_map` | Parallel Map | `array_map` в N процессах с сохранением порядка |
+| 30 | `30_mini_php_runtime` | Mini PHP Runtime | мастер + пул + event loop + supervisor |
+
 В каждом `diagram.txt` есть блоки **Сложность** ⭐, **Syscalls** и **Real world**
 (аналоги в реальном мире: nginx, PHP-FPM, ReactPHP, Go runtime, RoadRunner и т.д.).
+В каждом `README.md` — разделы **Задача / Как работает / IPC / Паттерн / Запуск /
+Что попробовать изменить / Real world / Что изучать дальше**.
