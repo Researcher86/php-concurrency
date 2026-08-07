@@ -1,0 +1,28 @@
+Graceful Shutdown (мягкое завершение)
+   SIGTERM (мастер)
+        │
+        ▼
+   Stop accepting new jobs        ─── больше не принимаем новые задачи
+        │
+        ▼
+   Drain queue                    ─── доедаем оставшиеся задачи
+        │
+        ▼
+   Finish active jobs             ─── дожидаемся текущие
+        │
+        ▼
+   Close IPC / remove queues      ─── убираем очереди и ресурсы
+        │
+        ▼
+   waitpid() всех детей
+        │
+        ▼
+   exit
+
+   В отличие от жёсткого exit: никакая задача не теряется,
+   очередь не засоряется, дети не становятся зомби.
+
+─────────────────────────────────────────
+Сложность: ⭐⭐⭐
+Syscalls:  fork(), msgget(), msgsnd(), msgrcv(), msgctl(), kill(), waitpid()
+Real world: PHP-FPM (SIGQUIT), Kubernetes (SIGTERM + grace period), nginx
