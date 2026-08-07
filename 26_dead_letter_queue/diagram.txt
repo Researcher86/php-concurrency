@@ -1,0 +1,18 @@
+Dead Letter Queue (очередь мёртвых сообщений)
+   Task
+    │
+    ▼
+   Worker ──retry──► retry ──► retry
+    │                                  │
+    │  успех: обработано               │  исчерпаны все попытки
+    ▼                                  ▼
+  [ done ]                        [ Dead Letter Queue ]
+                                  (сообщение + причина отказа)
+
+   Упавшие после всех ретраев задачи не выбрасываются:
+   их кладут в отдельную очередь для ручного разбора.
+
+─────────────────────────────────────────
+Сложность: ⭐⭐
+Syscalls:  fork(), msgget(), msgsnd(), msgrcv(), msgctl(), waitpid()
+Real world: RabbitMQ DLX/DLQ, Kafka (retention + reprocess), SQS DLQ
