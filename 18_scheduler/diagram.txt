@@ -1,0 +1,23 @@
+Scheduler (планировщик задач)
+   ┌─────────────┐
+   │ Task Source │  шлёт задачи в очередь
+   └──────┬──────┘
+          │
+          ▼
+   ┌───────────────┐
+   │  Scheduler    │  policy: round-robin
+   └──┬────┬─────┬─┘  справедливая раздача
+      │    │     │    по кругу
+   ┌──▼─┐ ┌▼──┐ ┌▼───┐
+   │ W1 │ │ W2│ │ W3 │
+   └────┘ └───┘ └────┘
+
+   В отличие от fan-out (competing consumers — кто первый схватил),
+   планировщик сам решает, какому воркеру достанется задача.
+
+   Политики: Round Robin · Priority · SJF · FIFO · CFS
+
+─────────────────────────────────────────
+Сложность: ⭐⭐
+Syscalls:  fork(), msgget(), msgsnd(), msgrcv(), msgctl(), waitpid()
+Real world: Linux CFS, Kubernetes scheduler, Sidekiq, Celery beat
