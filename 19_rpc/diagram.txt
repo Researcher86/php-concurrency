@@ -1,0 +1,16 @@
+RPC (Remote Procedure Call)
+   ┌──────────────┐  request {id, proc, args} ┌─────────────┐
+   │   Client     │ ────────────────────────► │   Server    │
+   │ add(2,3)     │                           │ switch(proc)│
+   │ call выглядит│ ◄──────────────────────── │  add/mul/.. │
+   │ как локальный│  response {id, result}    └─────────────┘
+   └──────────────┘  или {id, error}
+        │
+        ▼
+   Процедура исполняется в ДРУГОМ процессе;
+   id сопоставляет запрос с ответом (correlation id)
+
+─────────────────────────────────────────
+Сложность: ⭐⭐⭐
+Syscalls:  fork(), msgget(), msgsnd(), msgrcv(), msgctl(), waitpid()
+Real world: gRPC, JSON-RPC, Thrift, RabbitMQ RPC pattern
