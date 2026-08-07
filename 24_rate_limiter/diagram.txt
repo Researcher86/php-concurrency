@@ -3,11 +3,11 @@ Rate Limiter (ограничитель скорости)
         │
         ▼
    ┌────────────┐
-   │  Token     │   R воркеров разделяют ОДИН лимит
-   │  Bucket    │   (например 100 задач/сек)
-   │  (shm)     │
+   │  Global    │   R воркеров разделяют ОДИН лимит
+   │  Rate      │   (например 100 задач/сек)
+   │  Limiter   │
    └─────┬──────┘
-         │ берут токены под семафором
+         │ бронируют слоты под семафором
          ▼
    ┌─────┴────────────┐
    │  Worker 1 2 ... R│   суммарно не быстрее лимита
@@ -19,4 +19,4 @@ Rate Limiter (ограничитель скорости)
 ─────────────────────────────────────────
 Сложность: ⭐⭐⭐
 Syscalls:  fork(), semget(), semop(), shmget(), shmat(), shmdt(), usleep()
-Real world: API gateways, nginx limit_req, Redis token bucket, rate-limit алгоритмы
+Real world: API gateways, nginx limit_req, Redis rate limiting, rate-limit алгоритмы

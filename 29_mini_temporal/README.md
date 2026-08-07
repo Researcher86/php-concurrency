@@ -25,8 +25,10 @@ Temporal-подобный оркестратор: workflow + retry + timeout + s
 
 ## Паттерн
 
-**Durable Workflow Orchestration** (Temporal/Cadence): состояние workflow
-внешнее, шаги идемпотентные, всё можно перезапускать.
+**Workflow Orchestration с retry/timeout/cancel** (паттерны Temporal/Cadence):
+шаги идемпотентные и повторяемые. Учебная модель: состояние workflow живёт в
+памяти процесса-движка (`$state`), а не в durable storage, как в настоящем
+Temporal — рестарт движка его потеряет.
 
 ## Запуск
 
@@ -39,16 +41,17 @@ docker compose exec -T php php /app/29_mini_temporal/main.php
 - Уменьшить `MAX_ATTEMPTS` — workflow завершится failed.
 - Уменьшить таймаут — шаг упадёт по времени, а не по ошибке.
 - Послать cancel на середине workflow и посмотреть на историю.
+- Добавить персистентность состояния в файл — движок «переживёт» рестарт.
 
 ## Complexity / Failure modes / Guarantees
 
-**Complexity**: ⭐⭐⭐⭐⭐ — durable workflow: состояние вне процесса.
+**Complexity**: ⭐⭐⭐⭐⭐ — оркестрация с retry/timeout/cancel.
 **Failure modes**: шаг не уложился в таймаут → workflow падает по времени, а
 не по ошибке; cancel на середине → нужна история отката; повторная доставка
 шага без идемпотентности → двойной эффект.
-**Guarantees**: состояние workflow внешнее (переживает рестарт); retry /
-timeout / signal-cancel встроены; шаги идемпотентные — workflow можно
-перезапускать безопасно.
+**Guarantees**: retry / timeout / signal-cancel встроены; шаги идемпотентные —
+workflow можно перезапускать безопасно. Состояние workflow — в памяти движка
+(учебная модель, не durable storage; в Temporal — история в БД).
 
 ## Real world
 

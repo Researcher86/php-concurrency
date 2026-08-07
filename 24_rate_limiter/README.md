@@ -24,7 +24,8 @@ System V semaphore (`sem_get`/`sem_acquire`/`sem_release`) + shared memory
 
 ## Паттерн
 
-**Token Bucket (или глобальный pacing) на семафоре** — единый лимит на пул.
+**Global Rate Limiter / Pacing на семафоре** — единый лимит на пул воркеров
+(не token bucket: здесь нет ёмкости и всплесков, только равномерный темп).
 
 ## Запуск
 
@@ -36,7 +37,8 @@ docker compose exec -T php php /app/24_rate_limiter/main.php
 
 - Поднять `RATE_PER_SEC` — интервал между слотами станет меньше.
 - Убрать `sem_acquire`/`sem_release` — гонка испортит счётчик.
-- Сделать burst: разрешить всплеск из K задач сразу (bucket capacity).
+- Добавить burst-ёмкость (token bucket поверх pacing): разрешить всплеск из
+  K задач сразу, если слоты копились в «ведре».
 
 ## Complexity / Failure modes / Guarantees
 
@@ -50,8 +52,8 @@ docker compose exec -T php php /app/24_rate_limiter/main.php
 
 ## Real world
 
-API gateways (rate limiting), nginx `limit_req`, Redis token bucket, AWS
-Service Quotas.
+API gateways (rate limiting), nginx `limit_req`, Redis rate limiting
+(INCR/DECR-окно или token bucket), AWS Service Quotas.
 
 ## Что изучать дальше
 

@@ -102,57 +102,102 @@ pcntl_waitpid($fragile, $status);
 // мастер ничего не переотправляет
 echo "  at-most-once: task-A lost forever (no ACK, no requeue)\n";
 
-// At-least-once: воркер ACK'ает до обработки; если умрёт после ACK —
-// мастер переотправит, задача выполнится дважды
-$dupe = 0;
-$requeuePid = pcntl_fork();
-if ($requeuePid === -1) {
+// At-least-once: воркер ACK'ает ПОСЛЕ обработки. Если он умирает в середине
+// обработки (ДО ACK), мастер не получает подтверждение и после visibility
+// timeout переотправляет задачу — итог: задача выполнится дважды.
+$firstPid = pcntl_fork();
+if ($firstPid === -1) {
     die('fork failed');
 }
-if ($requeuePid === 0) {
+if ($firstPid === 0) {
     msg_receive($q2, 1, $t, 1024, $task, true, 0);
-    msg_send($q2, 2, "ack:$task");   // ACK ДО обработки
-    echo "  at-least-once worker: acked '$task', then crashing after ACK\n";
-    exit(1);                          // обработка так и не завершилась
+    usleep(50000); // "начал обрабатывать"
+    echo "  at-least-once worker #1: got '$task', crashed mid-processing (no ACK)\n";
+    exit(1);       // ACK так и не отправлен
 }
 msg_send($q2, 1, 'task-B');
-// ждём ACK, но не результат
+pcntl_waitpid($firstPid, $status);
+
+// Мастер ждёт ACK, но его нет — visibility timeout истекает
 $deadline = hrtime(true) + 300000 * 1000;
 while (hrtime(true) < $deadline) {
     if (msg_receive($q2, 2, $t, 1024, $msg, true, MSG_IPC_NOWAIT, $e)) {
-        if (str_starts_with($msg, 'ack:')) {
-            break;
-        }
+        break; // теоретически ACK прийти не должен — воркер #1 умер до него
     }
     usleep(10000);
 }
-pcntl_waitpid($requeuePid, $status);
-echo "  at-least-once: no result after ACK -> requeueing task-B\n";
-msg_send($q2, 1, 'task-B'); // повторная доставка -> возможен двойной эффект
+echo "  at-least-once: no ACK within visibility window -> redelivering task-B\n";
+usleep(100000); // имитация истечения visibility timeout
+msg_send($q2, 1, 'task-B'); // переотправка той же задачи
+
+// Второй воркер получает переотправленную задачу и обрабатывает УСПЕШНО
+$secondPid = pcntl_fork();
+if ($secondPid === -1) {
+    die('fork failed');
+}
+if ($secondPid === 0) {
+    msg_receive($q2, 1, $t, 1024, $task, true, 0);
+    usleep(50000); // обработал
+    msg_send($q2, 2, "ack:$task"); // ACK ПОСЛЕ обработки
+    echo "  at-least-once worker #2: got '$task' again, processed + acked\n";
+    exit(0);
+}
+pcntl_waitpid($secondPid, $status);
+msg_receive($q2, 2, $t, 1024, $msg, true, MSG_IPC_NOWAIT, $e); // забрать ACK
+echo "  at-least-once: task-B executed TWICE (duplicate effect — цена at-least-once)\n";
 
 // ── 4. IDEMPOTENCY ───────────────────────────────────────────────────────
 echo "\n== 4. Idempotency ==\n";
 
-// Обработанные ключи храним в shared memory: повторная доставка не двойной эффект
+// Обработанные ключи храним в shared memory. check + mark — под семафором:
+// иначе два воркера могут одновременно пройти проверку и применить эффект
+// дважды (race check-then-act).
 $shm = shm_attach(ftok(__FILE__, 'h'), 1024, 0666);
-$effects = 0;
+$sem = sem_get(ftok(__FILE__, 'i'), 1, 0666);
+shm_put_var($shm, 1001, 0); // счётчик эффектов (общий между процессами)
 
-function charge(string $key, $shm, int &$effects): void
+function charge(string $key, $shm, $sem): void
 {
-    if (shm_has_var($shm, crc32($key) % 1000 + 1)) {
+    sem_acquire($sem);                          // критическая секция
+    $slot = crc32($key) % 1000 + 1;
+    if (shm_has_var($shm, $slot)) {
         echo "  idempotency: key '$key' already processed, SKIPPING\n";
+        sem_release($sem);
         return;
     }
-    shm_put_var($shm, crc32($key) % 1000 + 1, true);
-    $effects++;
+    shm_put_var($shm, $slot, true);
+    shm_put_var($shm, 1001, shm_get_var($shm, 1001) + 1);
+    sem_release($sem);
     echo "  idempotency: charging '$key' (effect applied)\n";
 }
 
 // Задачу #42 доставили дважды (at-least-once из секции 3)
-charge('charge:42', $shm, $effects);
-charge('charge:42', $shm, $effects);
-charge('charge:43', $shm, $effects);
+charge('charge:42', $shm, $sem);
+charge('charge:42', $shm, $sem);
+charge('charge:43', $shm, $sem);
+echo "  idempotency: 3 deliveries, " . shm_get_var($shm, 1001) . " effects (not 3)\n";
 
-echo "  idempotency: 3 deliveries, $effects effects (not 3)\n";
+// Конкурентная доставка: два воркера ОДНОВРЕМЕННО применяют один ключ.
+// Без семафора оба прошли бы проверку; с ним — эффект применится один раз.
+$before = shm_get_var($shm, 1001);
+$pids = [];
+for ($i = 0; $i < 2; $i++) {
+    $pid = pcntl_fork();
+    if ($pid === -1) {
+        die('fork failed');
+    }
+    if ($pid === 0) {
+        charge('charge:44', $shm, $sem);
+        exit(0);
+    }
+    $pids[] = $pid;
+}
+foreach ($pids as $pid) {
+    pcntl_waitpid($pid, $status);
+}
+$delta = shm_get_var($shm, 1001) - $before;
+echo "  idempotency: 2 concurrent deliveries of #44 -> $delta effect (semaphore guards check+mark)\n";
+
 shm_remove($shm);
+sem_remove($sem);
 msg_remove_queue($q2);
