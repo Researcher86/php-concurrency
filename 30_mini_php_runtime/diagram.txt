@@ -1,0 +1,31 @@
+Mini PHP Runtime (мини-рантайм, итог курса)
+                 ┌─────────────────┐
+                 │     Server      │
+                 │  приём запросов │
+                 └───────┬─────────┘
+                         │
+                 ┌───────▼─────────┐
+                 │ Master Process  │
+                 │  форкает пул    │
+                 └───┬────┬───────┬┘
+                     │    │       │
+              ┌──────▼┐ ┌▼─────┐ ┌▼─────┐
+              │Worker │ │Worker│ │Worker│
+              └───────┘ └──────┘ └──────┘
+                     │    │    │
+                     └────┼────┘
+                          │
+                     IPC/Queue
+                          │
+                     Event Loop
+                          │
+                     Supervisor
+
+   Всё, что было в 01–23, сходится в одну маленькую модель
+   PHP-FPM/RoadRunner: master + пул persistent-воркеров +
+   очередь задач + цикл обработки + перезапуск упавших.
+
+─────────────────────────────────────────
+Сложность: ⭐⭐⭐⭐⭐
+Syscalls:  fork(), msgget(), msgsnd(), msgrcv(), msgctl(), kill(), waitpid()
+Real world: PHP-FPM, RoadRunner, FrankenPHP, Swoole, uWSGI
