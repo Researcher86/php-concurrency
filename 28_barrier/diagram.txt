@@ -1,0 +1,15 @@
+Barrier (барьер)
+   Worker 1 ────┐
+   Worker 2 ────┤
+   Worker 3 ────┼────► Barrier ────► Continue
+   Worker 4 ────┘        │
+                     все N дошли до точки
+                     только тогда идём дальше
+
+   Синхронизация фаз: каждая "фаза" начинается лишь когда
+   ВСЕ процессы завершили предыдущую. Счётчик + семафор.
+
+─────────────────────────────────────────
+Сложность: ⭐⭐⭐
+Syscalls:  fork(), semget(), semop(), shmget(), shmat(), shmdt()
+Real world: OpenMP parallel sections, CUDA __syncthreads, MPI_Barrier, Hadoop
