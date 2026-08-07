@@ -1,4 +1,4 @@
-# 29. Parallel Map
+# 20. Parallel Map
 
 `array_map()`, но элементы обрабатываются параллельно в N процессах —
 с сохранением порядка.
@@ -30,7 +30,7 @@
 ## Запуск
 
 ```bash
-docker compose exec -T php php /app/29_parallel_map/main.php
+docker compose exec -T php php /app/20_parallel_map/main.php
 ```
 
 ## Что попробовать изменить
@@ -39,11 +39,20 @@ docker compose exec -T php php /app/29_parallel_map/main.php
 - Сделать функцию тяжелее (`usleep` больше) — выигрыш от параллелизма растёт.
 - Добавить reduce после map (сумма результатов).
 
+## Complexity / Failure modes / Guarantees
+
+**Complexity**: ⭐⭐⭐ — fan-out + fan-in, легко, но с сохранением порядка.
+**Failure modes**: один медленный воркер тянет всё (ждать его результат);
+воркер падает → его элемент потерян (нет retry); переполнение очереди задач.
+**Guarantees**: результаты возвращаются в исходном порядке индексов
+(`array_map`-семантика); каждый элемент обрабатывается ровно один раз; итог
+появляется, когда готов самый последний элемент.
+
 ## Real world
 
-MapReduce/Hadoop, `parallel` ext в PHP, Go `sync.Map`, image processing
-pipelines.
+MapReduce/Hadoop (map-фаза), Python `multiprocessing.Pool` / `imap`, Java
+ForkJoinPool, Go worker pools / `errgroup`, image processing pipelines.
 
 ## Что изучать дальше
 
-06 — fan-out; 07 — fan-in; 30 — mini runtime (всё вместе).
+09 — fan-out; 10 — fan-in; 32 — mini runtime (всё вместе).

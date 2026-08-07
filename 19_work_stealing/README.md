@@ -1,4 +1,4 @@
-# 20. Work Stealing
+# 19. Work Stealing
 
 Перегруженный воркер крадёт задачи из чужих очередей — нагрузка балансируется
 сама.
@@ -30,7 +30,7 @@ ForkJoinPool).
 ## Запуск
 
 ```bash
-docker compose exec -T php php /app/20_work_stealing/main.php
+docker compose exec -T php php /app/19_work_stealing/main.php
 ```
 
 ## Что попробовать изменить
@@ -39,10 +39,19 @@ docker compose exec -T php php /app/20_work_stealing/main.php
 - Перегрузить другого воркера (W2/W3).
 - Добавить "таксономию" задач: тяжёлые воркеру N и т.д.
 
+## Complexity / Failure modes / Guarantees
+
+**Complexity**: ⭐⭐⭐ — децентрализованный баланс сложнее round-robin.
+**Failure modes**: гонка при steal — два воркера могут взять одну задачу из
+чужой очереди; собственная очередь воркера переполняется; воркер падает с
+украденной задачей → задача потеряна.
+**Guarantees**: динамический баланс нагрузки — простаивающий воркер берёт
+работу у занятого; каждая задача выполняется воркером, который её украл.
+
 ## Real world
 
 Java ForkJoinPool, Go runtime (work stealing в goroutines), Ray.
 
 ## Что изучать дальше
 
-18 — scheduler (статика vs динамика); 29 — parallel map (fan-out+fan-in).
+13 — scheduler (статика vs динамика); 20 — parallel map (fan-out+fan-in).

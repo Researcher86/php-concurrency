@@ -1,4 +1,4 @@
-# 15. Workflow Engine
+# 27. Workflow Engine
 
 Движок, исполняющий workflow по шагам-activity в дочерних процессах.
 
@@ -27,7 +27,7 @@ activity; `pcntl_waitpid` для получения статуса.
 ## Запуск
 
 ```bash
-docker compose exec -T php php /app/15_workflow_engine/main.php
+docker compose exec -T php php /app/27_workflow_engine/main.php
 ```
 
 ## Что попробовать изменить
@@ -36,10 +36,20 @@ docker compose exec -T php php /app/15_workflow_engine/main.php
 - Добавить условный шаг (if) в определение workflow.
 - Добавить историю событий в файл/очередь для аудита.
 
+## Complexity / Failure modes / Guarantees
+
+**Complexity**: ⭐⭐⭐⭐ — оркестрация шагов, состояние workflow.
+**Failure modes**: шаг падает (ненулевой exit) → workflow failed; состояние
+workflow не персистентно → при крахе оркестратора всё теряется; шаг завис →
+workflow висит без таймаута.
+**Guarantees**: центральный оркестратор управляет порядком шагов; явные
+состояния workflow (pending/running/failed/done); при отказе шага — переход в
+failed (saga-подобное поведение) или обработка.
+
 ## Real world
 
 Temporal, AWS Step Functions, Airflow (DAG), Symfony Messenger (Middleware).
 
 ## Что изучать дальше
 
-17 — mini Temporal (retry/timeout/cancel); 26 — dead letter queue.
+29 — mini Temporal (retry/timeout/cancel); 25 — dead letter queue.

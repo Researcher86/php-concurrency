@@ -1,4 +1,4 @@
-# 17. Mini Temporal
+# 29. Mini Temporal
 
 Temporal-подобный оркестратор: workflow + retry + timeout + signal-cancel.
 
@@ -31,7 +31,7 @@ Temporal-подобный оркестратор: workflow + retry + timeout + s
 ## Запуск
 
 ```bash
-docker compose exec -T php php /app/17_mini_temporal/main.php
+docker compose exec -T php php /app/29_mini_temporal/main.php
 ```
 
 ## Что попробовать изменить
@@ -40,10 +40,20 @@ docker compose exec -T php php /app/17_mini_temporal/main.php
 - Уменьшить таймаут — шаг упадёт по времени, а не по ошибке.
 - Послать cancel на середине workflow и посмотреть на историю.
 
+## Complexity / Failure modes / Guarantees
+
+**Complexity**: ⭐⭐⭐⭐⭐ — durable workflow: состояние вне процесса.
+**Failure modes**: шаг не уложился в таймаут → workflow падает по времени, а
+не по ошибке; cancel на середине → нужна история отката; повторная доставка
+шага без идемпотентности → двойной эффект.
+**Guarantees**: состояние workflow внешнее (переживает рестарт); retry /
+timeout / signal-cancel встроены; шаги идемпотентные — workflow можно
+перезапускать безопасно.
+
 ## Real world
 
 Temporal, Cadence, AWS Step Functions, Airflow с retries.
 
 ## Что изучать дальше
 
-25 — retry backoff (задержки между попытками); 30 — mini runtime.
+22 — retry backoff (задержки между попытками); 32 — mini runtime.

@@ -51,6 +51,17 @@ docker compose exec -T php php /app/26_reliability_fundamentals/main.php
 - Секция 4: убрать проверку ключа — три эффекта вместо одного.
 - Объединить: timeout → cancel → retry — полный цикл восстановления.
 
+## Complexity / Failure modes / Guarantees
+
+**Complexity**: ⭐⭐⭐ — четыре темы, каждая — самостоятельная дисциплина.
+**Failure modes**: timeout (зависший сервис), cancellation (застрявший или
+некооперативный воркер), delivery (потеря задачи при at-most-once или дубль
+при at-least-once), повтор без идемпотентности (двойной эффект).
+**Guarantees**: timeout — не ждать вечно; cooperative cancel — чистый выход,
+forced (SIGKILL) — мгновенный без cleanup; at-least-once + idempotency
+(= один эффект на ключ) даёт «эффективно один раз»; поздние ответы после
+таймаута игнорируются.
+
 ## Real world (conceptual analogues)
 
 HTTP client timeouts, Kubernetes `terminationGracePeriodSeconds`, RabbitMQ

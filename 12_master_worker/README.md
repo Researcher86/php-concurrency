@@ -1,4 +1,4 @@
-# 08. Master-Worker
+# 12. Master-Worker
 
 Классическая схема «мастер раздаёт, воркеры работают, результаты возвращаются».
 
@@ -27,7 +27,7 @@
 ## Запуск
 
 ```bash
-docker compose exec -T php php /app/08_master_worker/main.php
+docker compose exec -T php php /app/12_master_worker/main.php
 ```
 
 ## Что попробовать изменить
@@ -36,10 +36,18 @@ docker compose exec -T php php /app/08_master_worker/main.php
 - Сделать мастер-персистентным: не завершаться, а ждать новых задач.
 - Передавать в taskQueue payload, а не только id задачи.
 
+## Complexity / Failure modes / Guarantees
+
+**Complexity**: ⭐⭐⭐ — централизованная координация проще децентрализованной.
+**Failure modes**: мастер падает → воркеры осиротели; воркер падает на задаче →
+задача не переотправлена; потерян ответ → мастер считает задачу зависшей.
+**Guarantees**: единая точка планирования (master); очередь — связующее звено,
+переживающее отдельные процессы; воркеры изолированы друг от друга.
+
 ## Real world
 
 Web-серверы (master + worker pool), Celery, gunicorn.
 
 ## Что изучать дальше
 
-09 — supervisor (мониторинг и перезапуск); 22 — mini PHP-FPM.
+04 — supervisor (мониторинг и перезапуск); 30 — mini PHP-FPM.

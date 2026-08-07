@@ -1,4 +1,4 @@
-# 10. Pub-Sub
+# 16. Pub-Sub
 
 Издатели и подписчики: каждый подписчик получает свою копию сообщения по теме.
 
@@ -28,7 +28,7 @@ Unix socket pair (`stream_socket_pair`) на каждого подписчика
 ## Запуск
 
 ```bash
-docker compose exec -T php php /app/10_pub_sub/main.php
+docker compose exec -T php php /app/16_pub_sub/main.php
 ```
 
 ## Что попробовать изменить
@@ -37,10 +37,19 @@ docker compose exec -T php php /app/10_pub_sub/main.php
 - Подписать одного подписчика на все темы.
 - Заменить pipes на очередь System V — и увидеть, что копирование пропадает.
 
+## Complexity / Failure modes / Guarantees
+
+**Complexity**: ⭐⭐⭐ — broadcast поверх pipes, проще на очередях.
+**Failure modes**: подписчик отваливается → его копии теряются (нет
+персистентности); издатель пишет в закрытый pipe → SIGPIPE/ошибка записи;
+без тем — подписка на всё.
+**Guarantees**: каждый подписчик получает свою копию события; событие доходит
+до всех живых подписчиков независимо; упавший подписчик не влияет на других.
+
 ## Real world
 
 RabbitMQ exchanges (fanout/topic), Redis Pub/Sub, WebSocket-рассылки.
 
 ## Что изучать дальше
 
-16 — mini messenger (broker-маршрутизация); 11 — priority queue.
+28 — mini messenger (broker-маршрутизация); 08 — priority queue.

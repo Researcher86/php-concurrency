@@ -1,4 +1,4 @@
-# 04. Producer-Consumer
+# 05. Producer-Consumer
 
 Производители и потребители через общую очередь (competing consumers).
 
@@ -29,7 +29,7 @@ System V очередь; `pcntl_waitpid` для сбора детей; цикл
 ## Запуск
 
 ```bash
-docker compose exec -T php php /app/04_producer_consumer/main.php
+docker compose exec -T php php /app/05_producer_consumer/main.php
 ```
 
 ## Что попробовать изменить
@@ -39,10 +39,19 @@ docker compose exec -T php php /app/04_producer_consumer/main.php
 - Убрать terminator — консюмеры зависнут на пустой очереди.
 - Добавить `usleep` продюсерам — очередь будет пустеть и наполняться.
 
+## Complexity / Failure modes / Guarantees
+
+**Complexity**: ⭐⭐⭐ — простейшая развязка «производитель/потребитель».
+**Failure modes**: потребители умерли, а продюсер продолжает → очередь растёт
+до переполнения; потерян терминирующий сигнал → потребители висят на пустой
+очереди.
+**Guarantees**: очередь буферизует разницу скоростей; сообщения в SysV
+очереди не теряются, пока очередь живёт и никто не пишет поверх лимита.
+
 ## Real world
 
 Очереди задач (Beanstalkd, RabbitMQ), log-агрегация, обработка событий.
 
 ## Что изучать дальше
 
-05 — pipeline (конвейер из стадий); 06 — fan-out.
+11 — pipeline (конвейер из стадий); 09 — fan-out.

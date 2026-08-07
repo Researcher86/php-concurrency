@@ -1,4 +1,4 @@
-# 27. Rate Limiter
+# 24. Rate Limiter
 
 Несколько воркеров разделяют ОДИН общий лимит скорости (задач в секунду).
 
@@ -29,7 +29,7 @@ System V semaphore (`sem_get`/`sem_acquire`/`sem_release`) + shared memory
 ## Запуск
 
 ```bash
-docker compose exec -T php php /app/27_rate_limiter/main.php
+docker compose exec -T php php /app/24_rate_limiter/main.php
 ```
 
 ## Что попробовать изменить
@@ -38,6 +38,16 @@ docker compose exec -T php php /app/27_rate_limiter/main.php
 - Убрать `sem_acquire`/`sem_release` — гонка испортит счётчик.
 - Сделать burst: разрешить всплеск из K задач сразу (bucket capacity).
 
+## Complexity / Failure modes / Guarantees
+
+**Complexity**: ⭐⭐⭐ — семафор + shm-счётчик, модель проста.
+**Failure modes**: без `sem_acquire`/`sem_release` — гонка портит счётчик;
+слишком малый лимит — избыточные отказы; нет burst-ёмкости — резкие всплески
+обрезаются.
+**Guarantees**: глобальный темп на весь пул воркеров (не per-worker);
+атомарность счётчика через семафор; лимит соблюдается даже при многих
+воркерах.
+
 ## Real world
 
 API gateways (rate limiting), nginx `limit_req`, Redis token bucket, AWS
@@ -45,4 +55,4 @@ Service Quotas.
 
 ## Что изучать дальше
 
-28 — barrier (тот же инструментарий: shm + sem); 02 — semaphore/shmop.
+14 — barrier (тот же инструментарий: shm + sem); 03 — semaphore/shmop.

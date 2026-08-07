@@ -1,4 +1,4 @@
-# 24. Graceful Shutdown
+# 21. Graceful Shutdown
 
 Мягкое завершение: по SIGTERM система дорабатывает и чистится, а не падает.
 
@@ -32,7 +32,7 @@ System V очередь; сигналы (`pcntl_signal`, `pcntl_async_signals`),
 ## Запуск
 
 ```bash
-docker compose exec -T php php /app/24_graceful_shutdown/main.php
+docker compose exec -T php php /app/21_graceful_shutdown/main.php
 ```
 
 ## Что попробовать изменить
@@ -41,6 +41,16 @@ docker compose exec -T php php /app/24_graceful_shutdown/main.php
 - Увеличить задержку таймера — SIGTERM придёт после отправки всех задач.
 - Добавить N задач больше — увидеть, как drain ждёт именно воркеров.
 
+## Complexity / Failure modes / Guarantees
+
+**Complexity**: ⭐⭐⭐ — жизненно важная механика, не слишком сложная.
+**Failure modes**: принудительная остановка (SIGKILL/`exit` без drain) →
+задачи теряются; долгий drain задерживает деплой; SIGTERM до установки
+хендлера → мгновенная смерть.
+**Guarantees**: по SIGTERM воркеры заканчивают текущую работу и останавливаются
+кооперативно; задачи, уже взятые воркерами, не теряются; мастер ждёт всех
+перед завершением.
+
 ## Real world
 
 Kubernetes (SIGTERM + grace period), PHP-FPM (SIGQUIT), nginx, Kafka consumer
@@ -48,4 +58,5 @@ Kubernetes (SIGTERM + grace period), PHP-FPM (SIGQUIT), nginx, Kafka consumer
 
 ## Что изучать дальше
 
-03 — сигнальная остановка воркеров (база); 30 — runtime с graceful shutdown.
+04 — supervisor (сигнальная остановка воркеров, база); 32 — runtime с graceful
+shutdown.

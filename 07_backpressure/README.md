@@ -1,4 +1,4 @@
-# 12. Backpressure
+# 07. Backpressure
 
 Защита от бесконечного роста очереди: производитель притормаживается до
 скорости самого медленного звена.
@@ -31,7 +31,7 @@ System V очередь; `msg_stat_queue` для наблюдения за за�
 ## Запуск
 
 ```bash
-docker compose exec -T php php /app/12_backpressure/main.php
+docker compose exec -T php php /app/07_backpressure/main.php
 ```
 
 ## Что попробовать изменить
@@ -40,6 +40,16 @@ docker compose exec -T php php /app/12_backpressure/main.php
 - Добавить вывод `msg_stat_queue()['msg_qnum']` в каждый цикл producer'а.
 - Реализовать стратегию drop: `msg_send(..., MSG_NOERROR)` + проверка полноты.
 
+## Complexity / Failure modes / Guarantees
+
+**Complexity**: ⭐⭐⭐ — идея bounded buffer проще, чем её реализация.
+**Failure modes**: блокирующий `msg_send` на полной очереди вешает
+производителя; без ограничения очередь съедает всю память; неверный выбор
+стратегии (block vs drop) меняет поведение системы.
+**Guarantees**: ограниченный буфер гарантирует верхнюю границу памяти; темп
+потребления ограничивается самым медленным звеном; при drop — старые/новые
+задачи отбрасываются осознанно.
+
 ## Real world
 
 TCP (window), bounded queues в RabbitMQ/кафке (retention), каналы Go
@@ -47,4 +57,4 @@ TCP (window), bounded queues в RabbitMQ/кафке (retention), каналы Go
 
 ## Что изучать дальше
 
-25 — retry backoff (обработка отказов); 26 — dead letter queue.
+22 — retry backoff (обработка отказов); 25 — dead letter queue.

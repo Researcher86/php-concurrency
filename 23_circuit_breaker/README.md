@@ -1,4 +1,4 @@
-# 13. Circuit Breaker
+# 23. Circuit Breaker
 
 Предохранитель для вызовов к падающей зависимости.
 
@@ -23,7 +23,7 @@
 
 Здесь паттерн работает внутри одного процесса (состояние не общее) — это
 чистый автомат состояний. В мультипроцессном варианте состояние выносится
-в shared memory (см. 27/28).
+в shared memory (см. 14/24).
 
 ## Паттерн
 
@@ -32,7 +32,7 @@
 ## Запуск
 
 ```bash
-docker compose exec -T php php /app/13_circuit_breaker/main.php
+docker compose exec -T php php /app/23_circuit_breaker/main.php
 ```
 
 ## Что попробовать изменить
@@ -41,11 +41,22 @@ docker compose exec -T php php /app/13_circuit_breaker/main.php
 - Сделать сервис падающим всегда — брейкер останется в HALF_OPEN-цикле.
 - Вынести состояние брейкера в shared memory, чтобы его разделяли воркеры.
 
+## Complexity / Failure modes / Guarantees
+
+**Complexity**: ⭐⭐⭐ — простой автомат состояний, сложность в настройке.
+**Failure modes**: сервис всё ещё болен, а брейкер уже в HALF_OPEN (пробные
+запросы падают); слишком агрессивный порог — ложные срабатывания; состояние
+брейкера не общее → каждый воркер ломается независимо (в этой версии —
+в одном процессе).
+**Guarantees**: после порога отказов запросы к зависимости мгновенно
+отбрасываются (OPEN); через cooldown — пробная попытка (HALF_OPEN); при
+успехе — восстановление (CLOSED).
+
 ## Real world
 
 Hystrix/Resilience4j (JVM), k8s L7 (envoy), circuit breakers в Go-клиентах.
 
 ## Что изучать дальше
 
-25 — retry backoff (дополняет breaker); 26 — dead letter queue (куда падают
+22 — retry backoff (дополняет breaker); 25 — dead letter queue (куда падают
 отброшенные запросы).

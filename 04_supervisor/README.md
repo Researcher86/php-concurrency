@@ -1,4 +1,4 @@
-# 09. Supervisor
+# 04. Supervisor
 
 Мониторинг воркеров и автоматический перезапуск упавших.
 
@@ -31,7 +31,7 @@
 
 ```bash
 docker compose exec -T php sh -c \
-  'php /app/09_supervisor/main.php & PID=$!; sleep 3; kill -TERM $PID; wait $PID'
+  'php /app/04_supervisor/main.php & PID=$!; sleep 3; kill -TERM $PID; wait $PID'
 ```
 
 ## Что попробовать изменить
@@ -40,10 +40,19 @@ docker compose exec -T php sh -c \
 - Добавить лимит перезапусков (плавный отказ, а не бесконечный рестарт).
 - Сделать exponential backoff между перезапусками.
 
+## Complexity / Failure modes / Guarantees
+
+**Complexity**: ⭐⭐⭐⭐ — lifecycle + сигналы, но детерминированно.
+**Failure modes**: воркер падает (crash) или зависает; воркер, падающий сразу
+после старта, даёт бесконечный рестарт (нужен лимит/backoff); `SIGTERM` до
+установки хендлера убивает воркера дефолтной диспозицией.
+**Guarantees**: смерть ребёнка детектится через `pcntl_waitpid(..., WNOHANG)`;
+респавн в той же роли; стратегии one_for_one / one_for_all (из Erlang/OTP).
+
 ## Real world
 
 Supervisord, PM2, systemd, kubernetes ReplicaSet.
 
 ## Что изучать дальше
 
-30 — mini PHP runtime (supervisor внутри); 23 — mini RoadRunner (respawn).
+32 — mini PHP runtime (supervisor внутри); 31 — mini RoadRunner (respawn).

@@ -1,4 +1,4 @@
-# 28. Barrier
+# 14. Barrier
 
 Фаза 2 ни у кого не начнётся, пока ВСЕ процессы не завершат фазу 1.
 
@@ -26,7 +26,7 @@ System V shared memory (счётчик) + semaphore (атомарный инкр
 ## Запуск
 
 ```bash
-docker compose exec -T php php /app/28_barrier/main.php
+docker compose exec -T php php /app/14_barrier/main.php
 ```
 
 ## Что попробовать изменить
@@ -36,11 +36,20 @@ docker compose exec -T php php /app/28_barrier/main.php
 - Добавить второй барьер (нужен сброс счётчика).
 - Убрать spin-ожидание и посмотреть на гонку в выводе.
 
+## Complexity / Failure modes / Guarantees
+
+**Complexity**: ⭐⭐⭐ — синхронизация через shm + spin-ожидание.
+**Failure modes**: участник умирает до барьера → все остальные ждут вечно
+(нужен таймаут); spin-ожидание жжёт CPU; гонка, если счётчик сбрасывается
+неверно.
+**Guarantees**: новая фаза стартует у всех участников одновременно; барьер
+собирает всех (SPMD); вторая фаза не начнётся, пока не пришли все.
+
 ## Real world
 
 OpenMP `#pragma omp barrier`, CUDA `__syncthreads`, MPI_Barrier, Hadoop phases.
 
 ## Что изучать дальше
 
-27 — rate limiter (тот же инструментарий); 29 — parallel map (координация
+24 — rate limiter (тот же инструментарий); 20 — parallel map (координация
 результатов).

@@ -1,4 +1,4 @@
-# 03. Worker Pool
+# 06. Worker Pool
 
 Пул процессов-воркеров, разбирающих общую очередь задач.
 Эталон остановки по сигналу (SIGTERM + drain).
@@ -31,7 +31,7 @@ System V очередь (`msg_get_queue`/`msg_send`/`msg_receive`), сигнал
 ## Запуск
 
 ```bash
-docker compose exec -T php php /app/03_worker_pool/main.php
+docker compose exec -T php php /app/06_worker_pool/main.php
 ```
 
 ## Что попробовать изменить
@@ -41,10 +41,19 @@ docker compose exec -T php php /app/03_worker_pool/main.php
 - Переместить `pcntl_signal` ПОСЛЕ fork — ранний SIGTERM доставится воркеру
   с дефолтной диспозицией, и он умрёт мгновенно (анти-паттерн).
 
+## Complexity / Failure modes / Guarantees
+
+**Complexity**: ⭐⭐⭐ — конкуренция за общую очередь, сигнальная остановка.
+**Failure modes**: воркер падает на задаче → задача не обработана и не
+переотправлена (нет retry); мгновенный `exit` в хендлере → часть задач
+теряется; сигнал, объявленный ПОСЛЕ fork, не дойдёт до воркера корректно.
+**Guarantees**: свободный воркер забирает следующую задачу (competing
+consumers); распределение задач НЕ детерминировано — кто успел, тот и взял.
+
 ## Real world
 
 PHP-FPM (`pm.start_servers`), очереди задач, фоновые обработчики.
 
 ## Что изучать дальше
 
-04 — producer-consumer (двусторонняя очередь); 18 — scheduler с round-robin.
+05 — producer-consumer (двусторонняя очередь); 13 — scheduler с round-robin.

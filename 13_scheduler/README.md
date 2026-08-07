@@ -1,4 +1,4 @@
-# 18. Scheduler
+# 13. Scheduler
 
 Планировщик раздаёт задачи по воркерам round-robin — по кругу.
 
@@ -26,14 +26,23 @@ System V очереди; `pcntl_waitpid`; `pcntl_fork()` с проверкой �
 ## Запуск
 
 ```bash
-docker compose exec -T php php /app/18_scheduler/main.php
+docker compose exec -T php php /app/13_scheduler/main.php
 ```
 
 ## Что попробовать изменить
 
 - Сменить политику: least-loaded (воркеру с наименьшей очередью) или weighted.
 - Добавить задаче id и выводить его с именем воркера.
-- Сравнить распределение с 06_fan_out на одинаковых данных.
+- Сравнить распределение с 09_fan_out на одинаковых данных.
+
+## Complexity / Failure modes / Guarantees
+
+**Complexity**: ⭐⭐ — политика планирования вместо конкуренции.
+**Failure modes**: round-robin не учитывает фактическую нагрузку — воркер с
+тяжёлой задачей может получать новые; падение воркера — его неотправленные
+задачи теряются из планировщика.
+**Guarantees**: равномерное распределение по кругу (справедливо по числу
+задач, не по времени); детерминированное назначение, в отличие от fan-out.
 
 ## Real world
 
@@ -41,4 +50,4 @@ nginx (upstream round-robin), Kubernetes scheduler, RabbitMQ consistent hash.
 
 ## Что изучать дальше
 
-20 — work stealing (динамический баланс вместо статичного round-robin).
+19 — work stealing (динамический баланс вместо статичного round-robin).

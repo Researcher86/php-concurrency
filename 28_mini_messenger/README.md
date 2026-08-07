@@ -1,4 +1,4 @@
-# 16. Mini Messenger
+# 28. Mini Messenger
 
 Брокер, маршрутизирующий сообщения по комнатам и в личку.
 
@@ -22,12 +22,12 @@ System V очереди: `brokerQueue` (входящие) + по одной оч
 
 ## Паттерн
 
-**Message Broker / Router** поверх mailbox-модели (14).
+**Message Broker / Router** поверх mailbox-модели (15).
 
 ## Запуск
 
 ```bash
-docker compose exec -T php php /app/16_mini_messenger/main.php
+docker compose exec -T php php /app/28_mini_messenger/main.php
 ```
 
 ## Что попробовать изменить
@@ -36,6 +36,16 @@ docker compose exec -T php php /app/16_mini_messenger/main.php
 - Добавить offline-накопление: сообщения остаются в inbox до прочтения.
 - Добавить команду "покинуть комнату".
 
+## Complexity / Failure modes / Guarantees
+
+**Complexity**: ⭐⭐⭐⭐⭐ — маршрутизация поверх mailbox-модели.
+**Failure modes**: получатель offline → сообщение не доставлено (без
+накопления); ошибка в правилах маршрутизации → сообщение «потеряно» или
+отправлено не туда; inbox растёт без ограничений.
+**Guarantees**: брокер маршрутизирует по правилам (general/random/dm);
+inbox-модель — асинхронная доставка каждому адресату; отправитель и получатель
+не знают друг о друге напрямую.
+
 ## Real world
 
 Messaging-платформы (Slack, Telegram bot API), WebSocket-брокеры, RabbitMQ
@@ -43,4 +53,4 @@ exchanges.
 
 ## Что изучать дальше
 
-10 — pub-sub (базовый broadcast); 14 — actor model (inbox).
+16 — pub-sub (базовый broadcast); 15 — actor model (inbox).

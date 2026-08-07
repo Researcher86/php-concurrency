@@ -1,4 +1,4 @@
-# 14. Actor Model
+# 15. Actor Model
 
 Изолированные акторы-процессы, общающиеся только сообщениями.
 
@@ -28,7 +28,7 @@ System V очереди: одна на актора (mailbox). Прямой св
 ## Запуск
 
 ```bash
-docker compose exec -T php php /app/14_actor_model/main.php
+docker compose exec -T php php /app/15_actor_model/main.php
 ```
 
 ## Что попробовать изменить
@@ -37,10 +37,20 @@ docker compose exec -T php php /app/14_actor_model/main.php
 - Сделать актор, который спавнит актора при получении определённого сообщения.
 - Добавить ассинхронный таймаут на ожидание ответа от mailbox.
 
+## Complexity / Failure modes / Guarantees
+
+**Complexity**: ⭐⭐⭐⭐ — простота модели, сложность при отладке сети сообщений.
+**Failure modes**: актор умирает → его mailbox теряется; циклические запросы
+могут дать deadlock (нет таймаутов); сообщения без correlation трудно
+сопоставлять.
+**Guarantees**: состояние актора изолировано — нет разделяемой памяти; всё
+общение через асинхронные сообщения; обработка mailbox у каждого актора
+последовательна (порядок прихода).
+
 ## Real world
 
 Erlang/OTP, Akka (JVM), Orleans (C#), мессенджеры с per-user inbox'ами.
 
 ## Что изучать дальше
 
-16 — mini messenger (брокер с inbox'ами); 15 — workflow engine.
+28 — mini messenger (брокер с inbox'ами); 27 — workflow engine.

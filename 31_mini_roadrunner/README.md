@@ -1,4 +1,4 @@
-# 23. Mini RoadRunner
+# 31. Mini RoadRunner
 
 Persistent-воркеры: процесс живёт между запросами и крутит цикл
 принять job → обработать → вернуть результат.
@@ -27,7 +27,7 @@ System V очередь/relay-канал jobs; `pcntl_waitpid` (WNOHANG) + respa
 ## Запуск
 
 ```bash
-docker compose exec -T php php /app/23_mini_roadrunner/main.php
+docker compose exec -T php php /app/31_mini_roadrunner/main.php
 ```
 
 ## Что попробовать изменить
@@ -36,11 +36,25 @@ docker compose exec -T php php /app/23_mini_roadrunner/main.php
 - Уменьшить пул до 1 воркера.
 - Передавать в job payload и возвращать результат, а не только echo.
 
+## Complexity / Failure modes / Guarantees
+
+**Complexity**: ⭐⭐⭐⭐⭐ — persistent-воркеры проще в управлении, сложнее в
+чистке состояния.
+**Failure modes**: воркер крашится на job → job потерян (нужен retry/DLQ);
+persistent-воркер «засоряется» состоянием между запросами; воркер завис →
+нет таймаута.
+**Guarantees**: воркеры живут между запросами (нет fork на каждый job);
+crash воркера детектится и воркер перезапускается; пул не деградирует со
+временем.
+
 ## Real world
 
 RoadRunner, FrankenPHP, Swoole, Go+PHP гибриды.
 
+> Учебная модель: задачи раздаются через SysV очередь, а не по gRPC-каналу
+> RoadRunner. Суть (persistent-воркеры, живущие между запросами) — та же.
+
 ## Что изучать дальше
 
-30 — mini PHP runtime (мастер+пул+event loop+supervisor в одном); 24 —
+32 — mini PHP runtime (мастер+пул+polling loop+supervisor в одном); 21 —
 graceful shutdown.

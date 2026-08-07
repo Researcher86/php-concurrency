@@ -1,4 +1,4 @@
-# 19. RPC
+# 17. RPC
 
 Удалённый вызов процедуры: клиент вызывает "функцию", исполняемую в другом
 процессе.
@@ -27,7 +27,7 @@ System V очереди: request-очередь (клиент→сервер) и
 ## Запуск
 
 ```bash
-docker compose exec -T php php /app/19_rpc/main.php
+docker compose exec -T php php /app/17_rpc/main.php
 ```
 
 ## Что попробовать изменить
@@ -36,10 +36,19 @@ docker compose exec -T php php /app/19_rpc/main.php
 - Добавить таймаут ожидания ответа (см. 17).
 - Сделать брокер-посредник между клиентами и серверами.
 
+## Complexity / Failure modes / Guarantees
+
+**Complexity**: ⭐⭐⭐ — сопоставление запросов и ответов по correlation id.
+**Failure modes**: сервер не отвечает → клиент висит без таймаута; ответ
+теряется; два запроса с одинаковым correlation id → путаница ответов.
+**Guarantees**: каждый ответ сопоставлен своему запросу по correlation id;
+запрос и ответ асинхронны (через очередь); порядок ответов не обязан
+совпадать с порядком запросов.
+
 ## Real world
 
 gRPC, JSON-RPC, RabbitMQ RPC pattern, HTTP request/response.
 
 ## Что изучать дальше
 
-21 — event loop (обработка множества RPC-ответов без блокировок).
+18 — event loop (обработка множества RPC-ответов без блокировок).

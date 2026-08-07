@@ -1,4 +1,4 @@
-# 11. Priority Queue
+# 08. Priority Queue
 
 Очередь с приоритетами — за счёт типов сообщений System V.
 
@@ -28,7 +28,7 @@ System V очередь (`msg_send`/`msg_receive`), тип сообщения к
 ## Запуск
 
 ```bash
-docker compose exec -T php php /app/11_priority_queue/main.php
+docker compose exec -T php php /app/08_priority_queue/main.php
 ```
 
 ## Что попробовать изменить
@@ -38,10 +38,19 @@ docker compose exec -T php php /app/11_priority_queue/main.php
   первыми.
 - Поиграть с `type = -N` в `msg_receive` и посмотреть на другой порядок.
 
+## Complexity / Failure modes / Guarantees
+
+**Complexity**: ⭐⭐⭐ — «бесплатно» поверх типов сообщений SysV.
+**Failure modes**: переполнение одной приоритетной группы; starvation — низкие
+приоритеты могут не получить процессора, если высокие идут непрерывно.
+**Guarantees**: `msg_receive($q, $type, ...)` берёт сообщения по приоритету;
+порядок FIFO сохраняется внутри одного типа; абсолютный порядок между типами
+гарантирован.
+
 ## Real world
 
 Очереди задач с приоритетами (RabbitMQ x-max-priority), планировщики ОС.
 
 ## Что изучать дальше
 
-12 — backpressure; 18 — scheduler с round-robin.
+07 — backpressure; 13 — scheduler с round-robin.

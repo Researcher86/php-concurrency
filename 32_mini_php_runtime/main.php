@@ -1,7 +1,8 @@
 <?php
 
 // Mini PHP Runtime: мастер + пул persistent-воркеров + очередь запросов +
-// event loop + supervisor (перезапуск упавших). Модель PHP-FPM/RoadRunner.
+// polling loop (опрос очереди) + supervisor (перезапуск упавших).
+// Модель PHP-FPM/RoadRunner.
 
 const WORKER_COUNT = 3;
 const REQUEST_COUNT = 10;
@@ -48,12 +49,17 @@ for ($i = 0; $i < WORKER_COUNT; $i++) {
 }
 
 // Отправляем запросы, один из которых "роняет" воркера
+$stats = ['requests' => 0, 'completed' => 0, 'crashes' => 0, 'respawns' => 0];
 for ($i = 1; $i <= REQUEST_COUNT; $i++) {
-    msg_send($requestQueue, 1, $i === 5 ? CRASH_MSG : "req-$i");
+    $payload = $i === 5 ? CRASH_MSG : "req-$i";
+    msg_send($requestQueue, 1, $payload);
+    if ($payload !== CRASH_MSG) {
+        $stats['requests']++;
+    }
 }
 echo 'Master: ' . REQUEST_COUNT . " requests queued\n";
 
-// Event loop + supervisor
+// Polling loop (опрос очереди) + supervisor
 $deadline = hrtime(true) + 10000000000;
 while (true) {
     // Ответы
@@ -62,6 +68,7 @@ while (true) {
     $error = null;
     if (msg_receive($resultQueue, 1, $type, 1024, $msg, true, MSG_IPC_NOWAIT, $error)) {
         echo "Master: got result '$msg'\n";
+        $stats['completed']++;
     }
 
     // Перезапуск упавших
@@ -70,12 +77,13 @@ while (true) {
         $reaped = pcntl_waitpid($pid, $status, WNOHANG);
         if ($reaped === $pid) {
             echo "Master: worker $pid died, respawning\n";
+            $stats['crashes']++;
+            $stats['respawns']++;
             $workerPids[$i] = $spawnWorker();
         }
     }
 
-    $pending = msg_stat_queue($requestQueue)['msg_qnum'];
-    if ($pending === 0) {
+    if ($stats['completed'] >= $stats['requests']) {
         break;
     }
     if (hrtime(true) > $deadline) {
@@ -84,6 +92,13 @@ while (true) {
     }
     usleep(10000);
 }
+
+// Сводка по прогону
+echo 'Master: metrics — requests=' . $stats['requests']
+    . ' completed=' . $stats['completed']
+    . ' crashes=' . $stats['crashes']
+    . ' respawns=' . $stats['respawns']
+    . ' queue_left=' . msg_stat_queue($requestQueue)['msg_qnum'] . "\n";
 
 // Останавливаем пул и ждём
 foreach ($workerPids as $pid) {

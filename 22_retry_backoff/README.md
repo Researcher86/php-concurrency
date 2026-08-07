@@ -1,4 +1,4 @@
-# 25. Retry + Exponential Backoff
+# 22. Retry + Exponential Backoff
 
 Повторные попытки с растущей задержкой — чтобы не долбить упавший сервис.
 
@@ -18,7 +18,7 @@
 
 ## IPC
 
-Две System V очереди (task / result) — request-reply как в 19_rpc.
+Две System V очереди (task / result) — request-reply как в 17_rpc.
 
 ## Паттерн
 
@@ -27,7 +27,7 @@
 ## Запуск
 
 ```bash
-docker compose exec -T php php /app/25_retry_backoff/main.php
+docker compose exec -T php php /app/22_retry_backoff/main.php
 ```
 
 ## Что попробовать изменить
@@ -37,6 +37,16 @@ docker compose exec -T php php /app/25_retry_backoff/main.php
 - Сделать сервис всегда падающим — увидеть give up после MAX_ATTEMPTS.
 - Уменьшить `MAX_ATTEMPTS` до 2 — успех не наступит.
 
+## Complexity / Failure modes / Guarantees
+
+**Complexity**: ⭐⭐ — простая идея, дьявол в деталях (jitter, лимиты).
+**Failure modes**: без jitter — thundering herd (все ретраят одновременно);
+слишком долгий backoff задерживает восстановление; бесконечные ретраи —
+нагрузка на падающий сервис; give up теряет задачу без DLQ.
+**Guarantees**: экспоненциальный рост задержки снимает пик нагрузки;
+конечное число попыток (give up после `MAX_ATTEMPTS`); с jitter — попытки
+распределяются во времени.
+
 ## Real world
 
 AWS SDK (retry modes), RabbitMQ retry policies, Stripe, Temporal retries,
@@ -44,5 +54,5 @@ gRPC/HTTP client backoff.
 
 ## Что изучать дальше
 
-26 — dead letter queue (куда уходит после give up); 17 — mini Temporal (retry
+25 — dead letter queue (куда уходит после give up); 29 — mini Temporal (retry
 в workflow).

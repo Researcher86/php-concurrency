@@ -2,7 +2,8 @@
 
 // Process Lifecycle: fork → run → exit → SIGCHLD → waitpid → reap.
 // Три мини-демо: нормальный жизненный цикл со сбором статуса, зомби
-// (ребёнок умер, родитель ещё не отрепил), сирота (родитель умер раньше).
+// (ребёнок умер, родитель ещё не отрепил), reap-all через waitpid(-1)
+// (как это делают supervisor'ы). Понятие "сирота" описано в README.
 
 pcntl_async_signals(true);
 
@@ -49,24 +50,31 @@ echo "parent: child $zombie is dead but NOT reaped yet — it's a zombie\n";
 pcntl_waitpid($zombie, $status); // reap
 echo "parent: zombie reaped, exit code = " . pcntl_wexitstatus($status) . "\n";
 
-// ── Демо 3: orphan — родитель умирает раньше ребёнка ────────────────────
-echo "\n== Demo 3: orphan (parent dies first) ==\n";
+// ── Демо 3: reap-all — собираем НЕСКОЛЬКИХ детей через waitpid(-1) ───────
+echo "\n== Demo 3: reap multiple children (waitpid(-1) loop) ==\n";
 
-$orphan = pcntl_fork();
-if ($orphan === -1) {
-    die('fork failed');
+$kids = [];
+for ($i = 1; $i <= 3; $i++) {
+    $pid = pcntl_fork();
+    if ($pid === -1) {
+        die('fork failed');
+    }
+    if ($pid === 0) {
+        usleep(($i % 3) * 100000); // дети умирают с разными задержками
+        exit($i);
+    }
+    $kids[] = $pid;
 }
 
-if ($orphan === 0) {
-    echo "child " . getmypid() . ": PPID before parent death = " . posix_getppid() . "\n";
-    usleep(400000); // даём родителю умереть
-    echo "child " . getmypid() . ": PPID after  = " . posix_getppid()
-        . " (init/PID1 adopted me, will reap me)\n";
-    exit(0);
+// Собираем всех детей, как это делают supervisor'ы: waitpid(-1) + WNOHANG,
+// пока остались неотрепленные дети.
+while (count($kids) > 0) {
+    $reaped = pcntl_waitpid(-1, $status, WNOHANG);
+    if ($reaped > 0) {
+        echo "parent: reaped $reaped, exit code = " . pcntl_wexitstatus($status) . "\n";
+        $kids = array_values(array_filter($kids, fn($k) => $k !== $reaped));
+    } else {
+        usleep(50000); // никто ещё не умер — опрашиваем снова
+    }
 }
-
-// Родитель умирает первым. После этого ребёнка "усыновит" init (в Docker — tini)
-// и отрепит его. Здесь программа завершается, waitpid больше не делаем —
-// это и есть сиротство.
-echo "parent: dying before child $orphan\n";
-exit(0);
+echo "parent: all children reaped, no zombies left\n";

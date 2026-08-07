@@ -8,8 +8,6 @@
 
 pcntl_async_signals(true);
 
-const STOP_MSG = "\0STOP\0";
-
 // ── 1. TIMEOUT ────────────────────────────────────────────────────────────
 echo "== 1. Timeout ==\n";
 $q = msg_get_queue(ftok(__FILE__, 'a'), 0666);
@@ -22,7 +20,7 @@ if ($slowPid === 0) {
     // Медленный "внешний сервис": отвечает за 500мс
     msg_receive($q, 1, $t, 1024, $task, true, 0);
     usleep(500000);
-    msg_send($q, 1, "done:$task");
+    msg_send($q, 2, "done:$task");
     exit(0);
 }
 
@@ -30,7 +28,7 @@ msg_send($q, 1, 'request-1');
 $deadline = hrtime(true) + 200000 * 1000; // ждём максимум 200мс
 $reply = null;
 while (hrtime(true) < $deadline) {
-    if (msg_receive($q, 1, $t, 1024, $reply, true, MSG_IPC_NOWAIT, $e)) {
+    if (msg_receive($q, 2, $t, 1024, $reply, true, MSG_IPC_NOWAIT, $e)) {
         break;
     }
     usleep(10000);
@@ -40,7 +38,7 @@ if ($reply === null) {
 }
 pcntl_waitpid($slowPid, $status);
 $late = '';
-msg_receive($q, 1, $t, 1024, $late, true, MSG_IPC_NOWAIT, $e);
+msg_receive($q, 2, $t, 1024, $late, true, MSG_IPC_NOWAIT, $e);
 echo "late reply after timeout: " . var_export($late, true) . " (ignored by caller)\n";
 msg_remove_queue($q);
 
@@ -113,7 +111,7 @@ if ($requeuePid === -1) {
 }
 if ($requeuePid === 0) {
     msg_receive($q2, 1, $t, 1024, $task, true, 0);
-    msg_send($q2, 1, "ack:$task");   // ACK ДО обработки
+    msg_send($q2, 2, "ack:$task");   // ACK ДО обработки
     echo "  at-least-once worker: acked '$task', then crashing after ACK\n";
     exit(1);                          // обработка так и не завершилась
 }
@@ -121,7 +119,7 @@ msg_send($q2, 1, 'task-B');
 // ждём ACK, но не результат
 $deadline = hrtime(true) + 300000 * 1000;
 while (hrtime(true) < $deadline) {
-    if (msg_receive($q2, 1, $t, 1024, $msg, true, MSG_IPC_NOWAIT, $e)) {
+    if (msg_receive($q2, 2, $t, 1024, $msg, true, MSG_IPC_NOWAIT, $e)) {
         if (str_starts_with($msg, 'ack:')) {
             break;
         }

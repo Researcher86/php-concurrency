@@ -1,4 +1,4 @@
-# 21. Event Loop
+# 18. Event Loop
 
 Один процесс обслуживает несколько источников событий без блокировок.
 
@@ -14,6 +14,16 @@
 - Цикл обрабатывает только готовые каналы, остальные не трогает.
 - 3 pipe (источника событий) + select = один процесс обрабатывает их всех.
 
+## Polling vs Event Loop (важная терминология)
+
+- **Polling (опрос)** — цикл «проверь → нет события? → подожди чуть → проверь
+  снова». Так работают наши уроки на SysV очередях (`MSG_IPC_NOWAIT`):
+  очередь не является файловым дескриптором, и `select()` на неё не сработает.
+- **Event-driven** — ядро само будит процесс, когда событие готово
+  (`select`/`epoll` на fd). Позволяет спать и не жечь CPU впустую.
+
+SysV очередь → нужен polling-цикл. Pipe/Unix socket → можно настоящий event loop.
+
 ## IPC
 
 Unix socket pair (`stream_socket_pair`) как источники событий; `stream_select`
@@ -26,7 +36,7 @@ Unix socket pair (`stream_socket_pair`) как источники событий
 ## Запуск
 
 ```bash
-docker compose exec -T php php /app/21_event_loop/main.php
+docker compose exec -T php php /app/18_event_loop/main.php
 ```
 
 ## Что попробовать изменить
@@ -36,10 +46,19 @@ docker compose exec -T php php /app/21_event_loop/main.php
   отдельный polling (нет файлового дескриптора для select).
 - Сделать таймер внутри цикла (добавить дедлайн в select).
 
+## Complexity / Failure modes / Guarantees
+
+**Complexity**: ⭐⭐⭐⭐ — асинхронность сложна, но event loop — её база.
+**Failure modes**: источник событий не читается → fd накапливаются; медленный
+обработчик блокирует весь цикл (single-threaded); лимит fd `select()` (~1024)
+и отсутствие реакции на pipe-очередь SysV (не fd — нужен polling).
+**Guarantees**: цикл не блокируется ни на одном источнике — обрабатывает только
+готовые; справедливое мультиплексирование нескольких каналов.
+
 ## Real world
 
 ReactPHP, Node.js libuv, nginx worker, Swoole.
 
 ## Что изучать дальше
 
-22 — mini PHP-FPM (воркер с циклом); 30 — mini runtime (event loop внутри).
+30 — mini PHP-FPM (воркер с циклом); 32 — mini runtime (event loop внутри).

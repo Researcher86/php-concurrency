@@ -1,4 +1,4 @@
-# 26. Dead Letter Queue
+# 25. Dead Letter Queue
 
 Задачи, исчерпавшие все ретраи, не выбрасываются — их сохраняют в DLQ.
 
@@ -28,14 +28,23 @@
 ## Запуск
 
 ```bash
-docker compose exec -T php php /app/26_dead_letter_queue/main.php
+docker compose exec -T php php /app/25_dead_letter_queue/main.php
 ```
 
 ## Что попробовать изменить
 
 - Добавить вторую "ядовитую" задачу.
 - В DLQ класть оригинальный payload + количество попыток + последнюю ошибку.
-- Добавить обработчик DLQ, который сам ретраит позже (через 25).
+- Добавить обработчик DLQ, который сам ретраит позже (через 22).
+
+## Complexity / Failure modes / Guarantees
+
+**Complexity**: ⭐⭐ — «полигон для мусора» поверх обычной очереди.
+**Failure modes**: DLQ переполняется (никто не читает); «ядовитые» сообщения
+снова попадают в обработку; нет обработчика DLQ → мусор копится навсегда.
+**Guarantees**: неразрешимые задачи не блокируют основную очередь; в DLQ
+кладётся полный payload (+ число попыток и ошибка); основная очередь остаётся
+чистой.
 
 ## Real world
 
@@ -44,5 +53,5 @@ RabbitMQ DLX/DLQ, SQS DLQ, Kafka (retention + reprocess), Temporal (task queue
 
 ## Что изучать дальше
 
-25 — retry backoff (предшественник); 15 — workflow engine (куда DLQ подключают
+22 — retry backoff (предшественник); 27 — workflow engine (куда DLQ подключают
 в шагах).

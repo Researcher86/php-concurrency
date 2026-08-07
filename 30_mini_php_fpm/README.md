@@ -1,4 +1,4 @@
-# 22. Mini PHP-FPM
+# 30. Mini PHP-FPM
 
 Мастер держит пул воркеров, каждый умирает после `pm.max_requests` запросов и
 перезапускается — как настоящий FPM.
@@ -29,7 +29,7 @@ System V очередь запросов; `pcntl_waitpid` (WNOHANG) + respawn; �
 ## Запуск
 
 ```bash
-docker compose exec -T php php /app/22_mini_php_fpm/main.php
+docker compose exec -T php php /app/30_mini_php_fpm/main.php
 ```
 
 ## Что попробовать изменить
@@ -38,11 +38,25 @@ docker compose exec -T php php /app/22_mini_php_fpm/main.php
 - Добавить искусственную утечку (растущий массив) и увеличить лимит.
 - Сделать плавный рестарт: не терять текущий запрос.
 
+## Complexity / Failure modes / Guarantees
+
+**Complexity**: ⭐⭐⭐⭐⭐ — pool + supervisor, но механика повторяется из уроков.
+**Failure modes**: утечка памяти в воркере (накопительный рост) → рестарт по
+`pm.max_requests`; воркер падает вне лимита → respawn; гонка: respawn при
+остановке пула.
+**Guarantees**: рециклинг воркеров ограничивает эффект утечек; каждый
+отработавший `max_requests` воркер пересоздаётся; supervisor перезапускает
+упавших — пул не «худеет».
+
 ## Real world
 
 PHP-FPM (`pm.max_requests`), uwsgi (`max-requests`), gunicorn
 (`max_requests`).
 
+> Учебная модель распределения работы через SysV очередь, а не реализация
+> транспортного протокола FastCGI: в проде запросы приходят по FastCGI-сокету,
+> идея (рециклинг воркеров) — та же.
+
 ## Что изучать дальше
 
-23 — mini RoadRunner (persistent-воркеры); 09 — supervisor.
+31 — mini RoadRunner (persistent-воркеры); 04 — supervisor.

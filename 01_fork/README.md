@@ -45,6 +45,14 @@ docker compose exec -T php php /app/01_fork/main.php
 - Убрать финальный `pcntl_wait` и посмотреть в `ps -eo pid,ppid,stat` на зомби
   (статус `Z`).
 
+## Complexity / Failure modes / Guarantees
+
+**Complexity**: ⭐ — базовый системный вызов, никакой синхронизации.
+**Failure modes**: `pcntl_fork()` может вернуть `-1` (нехватка ресурсов);
+неотрепленный ребёнок превращается в зомби.
+**Guarantees**: после `fork()` ребёнок получает копию памяти и кода; общей
+памяти нет; `pcntl_wait` возвращает статус выхода ребёнка.
+
 ## Real world
 
 Каждый PHP-FPM-воркер, каждый `proc_open`, каждый запуск параллельной задачи
@@ -52,4 +60,5 @@ docker compose exec -T php php /app/01_fork/main.php
 
 ## Что изучать дальше
 
-02 — IPC: как процессам обмениваться данными; 03 — пул воркеров.
+02 — Process Lifecycle (жизненный цикл и zombie); 03 — IPC: как процессам
+обмениваться данными; 06 — Worker Pool.

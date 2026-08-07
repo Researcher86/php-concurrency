@@ -1,4 +1,4 @@
-# 05. Pipeline
+# 11. Pipeline
 
 Конвейер из стадий, как `|` в шелле: данные перетекают по цепочке процессов.
 
@@ -27,7 +27,7 @@ Unix socket pair (`stream_socket_pair`) между соседними стади
 ## Запуск
 
 ```bash
-docker compose exec -T php php /app/05_pipeline/main.php
+docker compose exec -T php php /app/11_pipeline/main.php
 ```
 
 ## Что попробовать изменить
@@ -36,10 +36,19 @@ docker compose exec -T php php /app/05_pipeline/main.php
 - Сделать одну стадию сильно медленнее других — конвейер упрётся в неё.
 - Соединить стадии через очередь System V вместо socket pair.
 
+## Complexity / Failure modes / Guarantees
+
+**Complexity**: ⭐⭐⭐ — много взаимодействующих стадий.
+**Failure modes**: стадия умирает → конвейер застревает; медленная стадия
+становится узким местом; буфер между стадиями полон → предыдущая стадия
+блокируется (backpressure по цепочке).
+**Guarantees**: линейный поток данных через стадии; пропускная способность
+конвейера не выше самой медленной стадии; порядок элементов сохраняется.
+
 ## Real world
 
 Unix-конвейеры, stream processing (Logstash), HTTP-мидлвары.
 
 ## Что изучать дальше
 
-06 — fan-out (одна стадия → много потребителей); 21 — event loop.
+09 — fan-out (одна стадия → много потребителей); 18 — event loop.
