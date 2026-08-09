@@ -1,18 +1,21 @@
 # PHP Concurrency
 
-Курс по многопроцессной (IPC) разработке на PHP: 32 урока от `pcntl_fork`
-до мини-рантайма в духе PHP-FPM/RoadRunner.
+Курс по конкурентной разработке на PHP: 38 уроков от `pcntl_fork` и
+процессного IPC до мини-рантайма в духе PHP-FPM/RoadRunner, затем фиберы и
+собственный асинхронный runtime (PHP 8.1+).
 
 Каждый урок — папка с `README.md` (мини-учебник), `diagram.txt` (ASCII-схема
 паттерна) и работающим `main.php` (или набором файлов), который можно запустить
 в Docker. Курс построен по частям (Процессы → Распределение → Координация →
-Надёжность → Workflows → Runtime), но каждый урок можно запускать отдельно.
+Надёжность → Workflows → Runtime → Fibers & Async → Choosing the Model), но
+каждый урок можно запускать отдельно.
 Для быстрого повторения — таблицы ниже и блоки **Real world** в каждом README.
 
 ## Требования
 
 - Docker + Docker Compose (образ: `php:8.5-cli` с расширениями `pcntl`, `posix`,
   `sysvmsg`, `sysvsem`, `sysvshm`, xdebug).
+- Уроки 33–38 требуют PHP ≥ 8.1 (фиберы); в образе уже 8.5.
 
 ## Запуск
 
@@ -98,7 +101,7 @@ docker compose exec -T php sh -c \
 | 28 | `28_mini_messenger` | Mini Messenger | broker-маршрутизация (general/random/dm) |
 | 29 | `29_mini_temporal` | Mini Temporal | retry / timeout / signal-cancel |
 
-### Part VI — PHP Runtime (рантайм)
+### Part VI — Process-based PHP Runtime (рантайм)
 
 | # | Папка | Тема | Идея |
 |---|-------|------|------|
@@ -106,10 +109,59 @@ docker compose exec -T php sh -c \
 | 31 | `31_mini_roadrunner` | Mini RoadRunner | persistent-воркеры, crash + respawn |
 | 32 | `32_mini_php_runtime` | Mini PHP Runtime | capstone: мастер + пул + polling loop + supervisor |
 
-Урок 32 — итоговый (capstone): собирает весь курс в одну модель рантайма,
-с уровнями самостоятельной доработки в его README.
+Урок 32 — итоговый (capstone) первой половины: собирает весь процессный курс
+в одну модель рантайма, с уровнями самостоятельной доработки в его README.
+
+### Part VII — Fibers & Async PHP (фиберы и асинхронность)
+
+| # | Папка | Тема | Идея |
+|---|-------|------|------|
+| 33 | `33_php_fibers` | PHP Fibers | `start/suspend/resume`, Fiber ≠ Thread/Process/Parallelism |
+| 34 | `34_cooperative_concurrency` | Cooperative Concurrency | кооперативное переключение; блокирующий вызов блокирует процесс |
+| 35 | `35_event_loop_fibers` | Event Loop + Fibers | фибры ждут событие через `suspend`, loop будит через `select` |
+| 36 | `36_async_io` | Async I/O | свой `await()` = `Fiber::suspend` + `stream_select` (unix socket pair) |
+| 37 | `37_mini_async_runtime` | Mini Async Runtime | capstone: event loop + фибры + таймеры + async I/O + scheduler |
+
+### Part VIII — Choosing the Model (выбор модели)
+
+| # | Папка | Тема | Идея |
+|---|-------|------|------|
+| 38 | `38_choosing_model` | Choosing the Model | процессы vs фибры: таблица, замеры I/O- и CPU-bound |
+
+Урок 37 — итоговый (capstone) второй половины: асинхронный рантайм в одном
+процессе (без fork и IPC), аналог урока 32 в фиберном мире. Урок 38
+сравнивает обе модели и помогает выбрать инструмент под задачу.
 
 В каждом `diagram.txt` есть блоки **Сложность** ⭐, **Syscalls** и **Real world**
 (аналоги в реальном мире: nginx, PHP-FPM, ReactPHP, Go runtime, RoadRunner и т.д.).
 В каждом `README.md` — разделы **Задача / Как работает / IPC / Паттерн / Запуск /
 Что попробовать изменить / Real world / Что изучать дальше**.
+
+## Финальная архитектура курса
+
+```
+                    PHP Concurrency
+                          │
+        ┌─────────────────┴─────────────────┐
+        │                                   │
+   Processes (уроки 01–32)            Fibers (уроки 33–37)
+        │                                   │
+   parallelism (OS)                  concurrency (userland)
+        │                                   │
+   CPU / изоляция                     I/O-bound / event loop
+        │                                   │
+   IPC: очереди/сокеты/память         общая память, без IPC
+        │                                   │
+   Runtime (урок 32)                  Async Runtime (урок 37)
+        │                                   │
+        └─────────────────┬─────────────────┘
+                          │
+                          ▼
+            Choosing the Model (урок 38)
+   I/O + много задач → фибры | CPU / изоляция → процессы
+```
+
+Процессы и фибры — не конкуренты, а два инструмента: процессы дают
+параллелизм и изоляцию, фибры — лёгкую кооперативную конкурентность для
+I/O-bound задач. Урок 38 сравнивает их с замерами (memory / throughput /
+latency) и показывает границы каждой модели.
