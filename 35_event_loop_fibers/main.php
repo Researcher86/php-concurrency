@@ -78,7 +78,12 @@ $hb = makeHeartbeat(HB_INTERVAL, HB_TICKS);
 $pending[] = ['fiber' => $hb, 'req' => $hb->start()];
 
 echo "Event loop: " . count($pending) . " фибр в ожидании\n";
+$loopDeadline = microtime(true) + 10;
 while ($pending) {
+    if (microtime(true) > $loopDeadline) {
+        echo "TIMEOUT: loop не завершился за 10s — вероятно, источник завис\n";
+        exit(1);
+    }
     $read = [];
     $nextAt = null;
     foreach ($pending as $w) {

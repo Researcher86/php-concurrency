@@ -16,7 +16,7 @@ const TASK_IO_MS = 300;
 
 // ---------- 1. Реестр ожиданий и event loop ----------
 $waiting = [];
-$timers = []; // [due_ms, callback]
+$timers = []; // [due(ts), callback] — задачи, готовые в будущий момент времени
 
 function scheduleEvent(array $ev, ?callable $onResume = null): void
 {
@@ -151,39 +151,41 @@ function runLoop(int $maxMs = 10000): void
 // ---------- 5. Демо: "веб-сервер" + фоновые задачи ----------
 $t0 = microtime(true);
 
-// 5.1. Пул воркеров-фибер: каждый "обрабатывает" несколько задач с I/O
+// 5.1. Пул воркеров-фибер + клиенты-фибры (в ТОМ ЖЕ процессе).
+// Клиенты пишут задачи в socket pair и закрывают канал (EOF) — это
+// источники событий для event loop. БЕЗ fork: все фибры в одном процессе.
 echo "=== Async Worker Pool (" . WORKERS . " фибры, " . TASKS . " задач) ===\n";
 $workerStreams = [];
-$workerPids = [];
 for ($w = 1; $w <= WORKERS; $w++) {
-    $pair = stream_socket_pair(STREAM_PF_UNIX, STREAM_SOCK_STREAM, STREAM_IPPROTO_IP);
-    $pid = pcntl_fork();
-    if ($pid === 0) {
-        fclose($pair[0]);
-        usleep(rand(100000, 400000)); // воркер "загружается"
+    [$server, $client] = stream_socket_pair(STREAM_PF_UNIX, STREAM_SOCK_STREAM, STREAM_IPPROTO_IP);
+    stream_set_blocking($client, false); // писать без блокировки, через awaitWrite
+    $workerStreams[] = $server;
+
+    // "Клиент" — обычная фибра: шлёт задачи с задержками, потом закрывает канал.
+    runInBackground(function () use ($w, $client): void {
+        echo "  [client{$w}] подключился\n";
+        awaitMs(rand(50, 200));       // эмуляция сетевой задержки
         for ($j = 0; $j < 2; $j++) {
-            fwrite($pair[1], "task-{$w}-{$j}\n");
-            usleep(rand(100000, 300000));
+            awaitWrite($client, 1.0); // ждём готовности сокета к записи
+            fwrite($client, "task-{$w}-{$j}\n");
+            echo "  [client{$w}] отправил task-{$w}-{$j}\n";
+            awaitMs(rand(50, 150));
         }
-        fclose($pair[1]);
-        exit(0);
-    }
-    fclose($pair[1]);
-    $workerStreams[] = $pair[0];
-    $workerPids[] = $pid;
+        fclose($client);              // EOF = клиент закончил
+        echo "  [client{$w}] закрыл соединение\n";
+    }, "client{$w}");
 }
 
 foreach ($workerStreams as $i => $stream) {
     runInBackground(function () use ($i, $stream): void {
-        global $waiting;
         $done = 0;
         while (true) {
-            $ev = awaitRead($stream, 1.0);
-            if ($ev === 'timeout' || $ev === 'eof') {
+            $ev = awaitRead($stream, 2.0);
+            if ($ev === 'timeout') {
                 break;
             }
             $line = fgets($stream);
-            if ($line === false) {
+            if ($line === false) {   // EOF: клиент закрыл канал
                 break;
             }
             echo "  [worker{$i}] получил '" . rtrim($line, "\n") . "', обрабатываю\n";
@@ -191,7 +193,7 @@ foreach ($workerStreams as $i => $stream) {
             echo "  [worker{$i}] готово\n";
             $done++;
         }
-        echo "  [worker{$i}] закрылся\n";
+        echo "  [worker{$i}] закрылся, обработано {$done} задач\n";
     }, "worker{$i}");
 }
 
@@ -211,10 +213,7 @@ runInBackground(function (): void {
 echo "Runtime: запускаю event loop\n";
 runLoop();
 
-foreach ($workerPids as $pid) {
-    pcntl_waitpid($pid, $status);
-}
-
 printf("\n=== Итог: весь рантайм отработал за %.2fs ===\n", microtime(true) - $t0);
 echo "Компоненты: event loop + фибры + таймеры + async I/O + scheduler
-в ОДНОМ процессе — без fork, без IPC, без блокировок (кооперативно).\n";
+в ОДНОМ процессе (" . getmypid() . ") — без fork, без IPC, без блокировок
+(кооперативно).\n";

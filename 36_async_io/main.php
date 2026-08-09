@@ -46,9 +46,8 @@ function runEventLoop(): void
         foreach ($waiting as $w) {
             if ($w['kind'] === 'read') {
                 $read[] = $w['stream'];
-            } else {
-                $nextAt = $nextAt === null ? $w['at'] : min($nextAt, $w['at']);
             }
+            $nextAt = $nextAt === null ? $w['at'] : min($nextAt, $w['at']);
         }
 
         $now = microtime(true);
@@ -125,8 +124,9 @@ function makeHandler(string $name): Fiber
         while ($stream !== null) {
             while (true) {
                 $event = awaitRead($stream);
-                if ($event === 'eof') {
-                    echo "$name: EOF, беру следующий поток\n";
+                if ($event === 'eof' || $event === 'timeout') {
+                    echo "$name: " . ($event === 'eof' ? 'EOF' : 'таймаут')
+                        . ", беру следующий поток\n";
                     fclose($stream);
                     break;
                 }
@@ -137,7 +137,8 @@ function makeHandler(string $name): Fiber
                     break;
                 }
                 echo "$name: обрабатываю '" . rtrim($line, "\n") . "'...\n";
-                awaitMs(rand(50, 150)); // дорогая операция, НО не блокируем loop
+                awaitMs(rand(50, 150)); // симуляция задержки (таймер, НЕ реальный
+                // I/O) — loop продолжает обслуживать другие фибры
                 echo "$name: ...готово\n";
             }
             $stream = array_shift($queue);

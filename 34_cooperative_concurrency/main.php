@@ -31,7 +31,7 @@ while ($alive) {
 echo "\n=== 2. Блокирующий вызов ВНУТРИ фибры блокирует ВСЁ ===\n";
 echo "  (анти-паттерн: sleep() приостанавливает весь процесс, а не фибру)\n";
 $blocker = new Fiber(function (): void {
-    echo "  fiber 'blocker': усну на 1.2s\n";
+    echo "  fiber 'blocker': усну на 1s\n";
     sleep(1);   // НЕ Fiber::suspend()! Это блокирует процесс целиком
     echo "  fiber 'blocker': проснулся\n";
 });

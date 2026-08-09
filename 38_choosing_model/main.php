@@ -44,8 +44,10 @@ for ($i = 0; $i < CHUNK; $i++) {
 $forkCost = (microtime(true) - $t0) / CHUNK;
 printf("\nСтоимость 1 fork+wait: ~%.1f ms — процессы на КОРОТКИХ задачах дороги\n", $forkCost * 1000);
 
-// ---------- 3. I/O-bound: 100 задач с ожиданием 20ms ----------
-echo "\n=== I/O-bound: " . TASKS . " задач × ожидание " . IO_MS . "ms ===\n";
+// ---------- 3. Simulated I/O wait: 100 задач с ожиданием 20ms ----------
+// Это НЕ реальный HTTP/DB/socket I/O — только usleep()/таймеры. Цель:
+// показать эффект ПЕРЕКРЫТИЯ ожиданий, а не измерить реальный I/O.
+echo "\n=== I/O-wait simulation: " . TASKS . " задач × ожидание " . IO_MS . "ms ===\n";
 
 // 3.1. Последовательно (baseline)
 $t0 = microtime(true);
@@ -57,7 +59,6 @@ printf("Последовательно : %6.2fs (≈ TASKS×IO_MS = %.2fs)\n", $
 
 // 3.2. Процессы: батчами по CHUNK (реальное перекрытие внутри батча)
 $t0 = microtime(true);
-$peakProcMem = 0;
 for ($start = 0; $start < TASKS; $start += CHUNK) {
     $children = [];
     $count = min(CHUNK, TASKS - $start);
@@ -101,14 +102,21 @@ while ($waiting) {
     }
 }
 $fiberTime = microtime(true) - $t0;
-printf("Фибры  (event loop): %6.2fs (пик памяти ~%d KB)\n",
+printf("Фибры  (event loop): %6.2fs (пик памяти ЭТОГО процесса ~%d KB)\n",
     $fiberTime, memory_get_peak_usage(true) / 1024);
+// Примечание: memory_get_peak_usage() меряет только один PHP-процесс. В
+// процессном замере это НЕ агрегат RSS всех детей — его надо суммировать
+// из /proc, поэтому память процессов и фибер тут нельзя сравнивать напрямую.
 
-// ---------- 4. CPU-bound: процессы (12 ядер) vs фибры (1 ядро) ----------
-// Задачи ДЛИННЫЕ (800ms): fork (~100ms) не маскирует параллелизм
-$CPU_TASKS = 12;
+// ---------- 4. CPU-bound: процессы (N ядер) vs фибры (1 ядро) ----------
+// Задачи ДЛИННЫЕ (800ms): fork (~100ms) не маскирует параллелизм.
+// Число процессов = числу ядер (nproc): ускорение зависит от железа. Если
+// задач больше, чем ядер — oversubscription: процессы делят ядра, и замер
+// приближается к последовательному.
+$nproc = max(2, (int) (shell_exec('nproc') ?: 4));
+$CPU_TASKS = $nproc;
 $CPU_MS = 800;
-echo "\n=== CPU-bound: " . $CPU_TASKS . " задач × " . $CPU_MS . "ms вычислений ===\n";
+echo "\n=== CPU-bound: " . $CPU_TASKS . " задач × " . $CPU_MS . "ms вычислений (nproc=" . $nproc . ") ===\n";
 
 $burn = function (int $ms): void {
     $end = hrtime(true) + $ms * 1000000;
@@ -154,12 +162,12 @@ foreach ($fibers as $f) {
 $cpuFiber = microtime(true) - $t0;
 
 printf("Последовательно : %6.2fs\n", $cpuSeq);
-printf("Процессы (пар-но): %6.2fs (≈ %dms + fork — реальный parallelism на ядрах)\n", $cpuProc, $CPU_MS);
+printf("Процессы (пар-но): %6.2fs (≈ %dms + fork; ускорение ≈ число ядер %d)\n", $cpuProc, $CPU_MS, $nproc);
 printf("Фибры           : %6.2fs (≈ %dms×%d — НОЛЬ parallelism)\n", $cpuFiber, $CPU_MS, $CPU_TASKS);
 
 // ---------- 5. Вердикт ----------
 echo "\n=== Вывод ===\n";
-printf("I/O-bound : последовательно %.2fs | процессы %.2fs | фибры %.2fs\n", $seq, $proc, $fiberTime);
+printf("I/O-wait : последовательно %.2fs | процессы %.2fs | фибры %.2fs\n", $seq, $proc, $fiberTime);
 printf("CPU-bound : последовательно %.2fs | процессы %.2fs | фибры %.2fs\n", $cpuSeq, $cpuProc, $cpuFiber);
 echo "
 - I/O-bound + много задач (HTTP, DB, сокеты, таймеры) → ФИБРЫ:

@@ -126,7 +126,7 @@ docker compose exec -T php sh -c \
 
 | # | Папка | Тема | Идея |
 |---|-------|------|------|
-| 38 | `38_choosing_model` | Choosing the Model | процессы vs фибры: таблица, замеры I/O- и CPU-bound |
+| 38 | `38_choosing_model` | Choosing the Model | процессы vs фибры: таблица, замеры I/O-wait и CPU-bound |
 
 Урок 37 — итоговый (capstone) второй половины: асинхронный рантайм в одном
 процессе (без fork и IPC), аналог урока 32 в фиберном мире. Урок 38
