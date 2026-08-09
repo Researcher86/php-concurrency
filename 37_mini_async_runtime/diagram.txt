@@ -23,7 +23,7 @@ Mini Async Runtime (capstone: event loop + фибры + таймеры + async I
    Состав:
    - awaitRead / awaitWrite  — async I/O через select
    - awaitMs + timer queue   — таймеры (в т.ч. callback-heartbeat)
-   - runInBackground         — scheduler: фибра-задача
+   - scheduleTask           — scheduler: планирует кооперативную фибру-задачу
    - runLoop                 — сердце рантайма
 
 ─────────────────────────────────────────

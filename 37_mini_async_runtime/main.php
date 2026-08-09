@@ -56,10 +56,11 @@ function addTimer(int $ms, callable $cb): void
     $timers[] = ['due' => microtime(true) + $ms / 1000, 'cb' => $cb];
 }
 
-// ---------- 3. Scheduler: "запустить задачу в фоне" ----------
-// Упрощение: в PHP нет встроенных фоновых потоков. Scheduler исполняет
-// callback кооперативно внутри фибры — это честная модель "userland task".
-function runInBackground(callable $cb, string $name): void
+// ---------- 3. Scheduler: "запланировать задачу" (cooperative task spawning) ----------
+// Упрощение: в PHP нет встроенных фоновых потоков. Scheduler НЕ выполняет
+// задачу параллельно — он планирует её как фибру и исполняет callback
+// кооперативно (переключение только в suspend). Это честная userland-модель.
+function scheduleTask(callable $cb, string $name): void
 {
     $fiber = new Fiber(function () use ($cb, $name): void {
         echo "  [$name] старт\n";
@@ -162,7 +163,7 @@ for ($w = 1; $w <= WORKERS; $w++) {
     $workerStreams[] = $server;
 
     // "Клиент" — обычная фибра: шлёт задачи с задержками, потом закрывает канал.
-    runInBackground(function () use ($w, $client): void {
+    scheduleTask(function () use ($w, $client): void {
         echo "  [client{$w}] подключился\n";
         awaitMs(rand(50, 200));       // эмуляция сетевой задержки
         for ($j = 0; $j < 2; $j++) {
@@ -177,7 +178,7 @@ for ($w = 1; $w <= WORKERS; $w++) {
 }
 
 foreach ($workerStreams as $i => $stream) {
-    runInBackground(function () use ($i, $stream): void {
+    scheduleTask(function () use ($i, $stream): void {
         $done = 0;
         while (true) {
             $ev = awaitRead($stream, 2.0);
@@ -203,7 +204,7 @@ addTimer(500, function (): void {
 });
 
 // 5.3. Фоновая "задача-демон": считает что-то периодически
-runInBackground(function (): void {
+scheduleTask(function (): void {
     for ($i = 1; $i <= 3; $i++) {
         awaitMs(400);
         printf("  [daemon] проход %d на %.2fs\n", $i, microtime(true) - $GLOBALS['t0']);
