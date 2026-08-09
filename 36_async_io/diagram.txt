@@ -1,0 +1,35 @@
+Async I/O (свой userland-рантайм: фибры + event loop)
+
+   Клиенты (дочерние процессы, N)            Сервер (1 процесс)
+   ┌──────────────┐   unix socket pair       ┌─────────────────────────────┐
+   │ client1 ─────┼──────────┐               │  fiber#0:  awaitRead(s0)    │
+   │ client2 ─────┼──────────┼──────────────►│   └ suspend ──┐             │
+   │ client3 ─────┼──────────┼──────────────►│  fiber#1:  awaitRead(s1)    │
+   └──────────────┘          └──────────────►│   └ suspend ──┐             │
+                                             │               ▼             │
+                                             │   event loop:               │
+                                             │     stream_select(...)      │
+                                             │   ┌───────────────────────┐ │
+                                             │   │ awaitRead(s0) -> ready│ │
+                                             │   │ awaitMs(50) -> tick   │ │
+                                             │   └───────────────────────┘ │
+                                             │   resume(ready) ─► fiber#0  │
+                                             │      -> обрабатывает        │
+                                             └─────────────────────────────┘
+
+   API-вид изнутри фибры (пользовательский код):
+     $event = awaitRead($stream);   // "блокирующий" вызов, но НЕ блокирует loop
+     awaitMs(100);                  // "sleep", но остальные фибры работают
+
+   Под капотом:
+     awaitRead() = Fiber::suspend(['read',$stream])
+                 -> event loop ждёт stream_select()
+                 -> ready -> Fiber::resume('ready')
+
+   Ключевое: 9 запросов, 2 фибры, 1 процесс — I/O-ожидание перекрывается.
+   Если бы вместо фибер был блокирующий fgets — сервер стоял бы и ждал.
+
+─────────────────────────────────────────
+Сложность: ⭐⭐⭐⭐⭐ — настоящий async runtime, протокол "фибра заявляет интерес"
+Syscalls:  fork(), socketpair(), select(), read(), write(), close()
+Real world: Amp v3 (фиберы + Revolt loop), Swoole (coroutine + epoll)
