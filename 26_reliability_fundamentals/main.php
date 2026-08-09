@@ -102,17 +102,24 @@ pcntl_waitpid($fragile, $status);
 // мастер ничего не переотправляет
 echo "  at-most-once: task-A lost forever (no ACK, no requeue)\n";
 
-// At-least-once: воркер ACK'ает ПОСЛЕ обработки. Если он умирает в середине
-// обработки (ДО ACK), мастер не получает подтверждение и после visibility
-// timeout переотправляет задачу — итог: задача выполнится дважды.
+// At-least-once: воркер ACK'ает ПОСЛЕ обработки. Если он применил side effect,
+// но умер ДО ACK, мастер не получает подтверждение и после visibility timeout
+// переотправляет задачу — тот же side effect выполнится ДВАЖДЫ.
+$effects = shm_attach(ftok(__FILE__, 'e'), 256, 0666);
+shm_put_var($effects, 1, 0); // счётчик side effect'ов (общий между процессами)
+
+// Воркер #1: получил задачу, применил side effect, но упал ДО ACK
 $firstPid = pcntl_fork();
 if ($firstPid === -1) {
     die('fork failed');
 }
 if ($firstPid === 0) {
     msg_receive($q2, 1, $t, 1024, $task, true, 0);
-    usleep(50000); // "начал обрабатывать"
-    echo "  at-least-once worker #1: got '$task', crashed mid-processing (no ACK)\n";
+    usleep(50000); // "обрабатываю"
+    $n = shm_get_var($effects, 1) + 1; // применили side effect (например, списали деньги)
+    shm_put_var($effects, 1, $n);
+    echo "  at-least-once worker #1: effect applied for '$task' (count=$n)\n";
+    echo "  at-least-once worker #1: crashed BEFORE ack\n";
     exit(1);       // ACK так и не отправлен
 }
 msg_send($q2, 1, 'task-B');
@@ -130,7 +137,7 @@ echo "  at-least-once: no ACK within visibility window -> redelivering task-B\n"
 usleep(100000); // имитация истечения visibility timeout
 msg_send($q2, 1, 'task-B'); // переотправка той же задачи
 
-// Второй воркер получает переотправленную задачу и обрабатывает УСПЕШНО
+// Второй воркер получает переотправленную задачу, применяет side effect СНОВА и ACK'ает
 $secondPid = pcntl_fork();
 if ($secondPid === -1) {
     die('fork failed');
@@ -138,13 +145,17 @@ if ($secondPid === -1) {
 if ($secondPid === 0) {
     msg_receive($q2, 1, $t, 1024, $task, true, 0);
     usleep(50000); // обработал
+    $n = shm_get_var($effects, 1) + 1; // side effect применён повторно
+    shm_put_var($effects, 1, $n);
+    echo "  at-least-once worker #2: effect applied for '$task' AGAIN (count=$n)\n";
     msg_send($q2, 2, "ack:$task"); // ACK ПОСЛЕ обработки
-    echo "  at-least-once worker #2: got '$task' again, processed + acked\n";
     exit(0);
 }
 pcntl_waitpid($secondPid, $status);
 msg_receive($q2, 2, $t, 1024, $msg, true, MSG_IPC_NOWAIT, $e); // забрать ACK
-echo "  at-least-once: task-B executed TWICE (duplicate effect — цена at-least-once)\n";
+$total = shm_get_var($effects, 1);
+echo "  at-least-once: task-B delivered 2x -> side effect applied $total times (двойной эффект)\n";
+shm_remove($effects);
 
 // ── 4. IDEMPOTENCY ───────────────────────────────────────────────────────
 echo "\n== 4. Idempotency ==\n";

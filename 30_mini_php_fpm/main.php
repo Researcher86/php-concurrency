@@ -83,7 +83,25 @@ while ($results < REQUEST_COUNT) {
     usleep(1000);
 }
 
-// Все запросы обработаны — останавливаем пул
+// Все запросы обработаны. Последний воркер, дошедший до max_requests, мог
+// умереть сразу после отправки результата — даём ему выйти (его usleep 30ms)
+// и засчитываем рестарт, иначе "worker restarts" покажет 0 при живом демо.
+usleep(60000);
+
+do {
+    $reaped = false;
+    foreach ($pool as $i => $pid) {
+        $r = pcntl_waitpid($pid, $status, WNOHANG);
+        if ($r > 0) {
+            $pool[$i] = $spawnWorker();
+            $restarts++;
+            echo "Master: respawned dead worker #$i\n";
+            $reaped = true;
+        }
+    }
+} while ($reaped);
+
+// Останавливаем пул
 foreach ($pool as $i => $pid) {
     msg_send($requestQueue, 1, 'STOP');
 }
