@@ -1,0 +1,32 @@
+Mini Async Runtime (capstone: event loop + фибры + таймеры + async I/O + scheduler)
+
+   Один процесс, один поток — много кооперативных задач
+   ┌───────────────────────────────────────────────────────────┐
+   │  fiber#0 (worker) ── awaitRead(s0) ── suspend ─┐          │
+   │  fiber#1 (worker) ── awaitRead(s1) ── suspend ─┤          │
+   │  fiber#2 (worker) ── awaitRead(s2) ── suspend ─┤          │
+   │  fiber#3 (daemon) ── awaitMs(400)  ── suspend ─┤          │
+   │  timer   (heartbeat) ──────────────── onDue ───┤          │
+   │                                                ▼          │
+   │                        Event Loop:                        │
+   │                  stream_select(read+write)                │
+   │                  + timer queue (ближайший дедлайн)        │
+   │                                                 │         │
+   │   готовые: resume('ready') ──► fiber обрабатывает         │
+   │            resume('tick')  ──► демон продолжает           │
+   └───────────────────────────────────────────────────────────┘
+
+   Задачи живут в одном процессе: нет fork, нет IPC, нет семафоров.
+   "Параллельность" — кооперативная: одна фибра исполняется в момент,
+   остальные ждут события (I/O, таймер).
+
+   Состав:
+   - awaitRead / awaitWrite  — async I/O через select
+   - awaitMs + timer queue   — таймеры (в т.ч. callback-heartbeat)
+   - runInBackground         — scheduler: фибра-задача
+   - runLoop                 — сердце рантайма
+
+─────────────────────────────────────────
+Сложность: ⭐⭐⭐⭐⭐ — capstone второй части: все фибер-идеи в одном рантайме
+Syscalls:  socketpair(), select(), read(), write(), close()
+Real world: Amp v3 (фиберы) + Revolt (event loop); Swoole (coroutine+epoll); Go scheduler (но с прерыванием I/O)
