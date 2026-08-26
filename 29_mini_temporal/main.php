@@ -9,6 +9,10 @@
 //       * Retry  — активность падает, движок переотправляет (до 3 попыток)
 //       * Timeout — активность не успела ответить -> шаг провален
 //       * Signal  — внешний оператор может отменить workflow
+//       * Correlation id — у каждого запроса свой id, ответ сверяется с ним,
+//         а не принимается "первым подвернувшимся" (иначе поздний ответ
+//         одной активности, пришедший уже после таймаута, можно спутать
+//         с ответом на следующую активность)
 //   УЧЕБНАЯ МОДЕЛЬ: состояние workflow живёт в памяти движка ($state),
 //   не в durable storage. В настоящем Temporal оно персистентно.
 
@@ -29,8 +33,6 @@ if ($workerPid === -1) {
     die('fork failed');
 }
 if ($workerPid === 0) {
-    $chargeAttempts = 0;
-
     while (true) {
         $task = '';
         $type = 0;
@@ -41,29 +43,33 @@ if ($workerPid === 0) {
             break;
         }
 
-        if ($task === 'SlowCheck') {
+        $id = $task['id'];
+        $name = $task['name'];
+
+        if ($name === 'SlowCheck') {
             usleep(800000); // дольше TIMEOUT_US -> движок откажет по таймауту
             echo "Worker: SlowCheck finished (too late)\n";
-            msg_send($resultQueue, 1, 'OK');
+            msg_send($resultQueue, 1, ['id' => $id, 'status' => 'OK']);
             continue;
         }
 
         usleep(ACTIVITY_DELAY_US);
 
-        if ($task === 'Charge') {
-            $chargeAttempts++;
-            if ($chargeAttempts < MAX_ATTEMPTS) {
-                echo "Worker: Charge attempt $chargeAttempts FAILED\n";
-                msg_send($resultQueue, 1, 'FAIL');
+        if ($name === 'Charge') {
+            // Номер попытки шлёт движок (у него, а не у воркера, живёт retry-state)
+            $attempt = $task['attempt'];
+            if ($attempt < MAX_ATTEMPTS) {
+                echo "Worker: Charge attempt $attempt FAILED\n";
+                msg_send($resultQueue, 1, ['id' => $id, 'status' => 'FAIL']);
             } else {
-                echo "Worker: Charge attempt $chargeAttempts OK\n";
-                msg_send($resultQueue, 1, 'OK');
+                echo "Worker: Charge attempt $attempt OK\n";
+                msg_send($resultQueue, 1, ['id' => $id, 'status' => 'OK']);
             }
             continue;
         }
 
-        echo "Worker: $task OK\n";
-        msg_send($resultQueue, 1, 'OK'); // Ship / Notify всегда успешны
+        echo "Worker: $name OK\n";
+        msg_send($resultQueue, 1, ['id' => $id, 'status' => 'OK']); // Ship / Notify всегда успешны
     }
     exit(0);
 }
@@ -87,23 +93,42 @@ if ($operatorPid === 0) {
 
 // ---- Движок: примитивы ----
 
-function receiveResult(SysvMessageQueue $resultQueue): string
+// Свой id на каждый запрос — чтобы можно было отличить ответ на ЭТОТ запрос
+// от чужого/устаревшего ответа, болтающегося в очереди (см. комментарий про
+// Correlation id в начале файла).
+function nextId(): int
 {
-    $reply = '';
-    $type = 0;
-    $error = null;
-    msg_receive($resultQueue, 1, $type, 1024, $reply, true, 0, $error);
-    return $reply;
+    static $id = 0;
+    return ++$id;
+}
+
+// Ждём именно ответ на $expectedId; всё остальное — устаревший ответ
+// от прошлой активности — вычитываем и отбрасываем, продолжая ждать.
+function receiveResult(SysvMessageQueue $resultQueue, int $expectedId): string
+{
+    while (true) {
+        $reply = null;
+        $type = 0;
+        $error = null;
+        msg_receive($resultQueue, 1, $type, 1024, $reply, true, 0, $error);
+
+        if (($reply['id'] ?? null) === $expectedId) {
+            return $reply['status'];
+        }
+
+        echo 'Engine: discarding stale result (id=' . ($reply['id'] ?? '?') . ")\n";
+    }
 }
 
 // Запуск активности с retry (до MAX_ATTEMPTS попыток)
 function runActivity(SysvMessageQueue $taskQueue, SysvMessageQueue $resultQueue, string $name): bool
 {
     for ($attempt = 1; $attempt <= MAX_ATTEMPTS; $attempt++) {
+        $id = nextId();
         echo "Engine: dispatch '$name' (attempt $attempt)\n";
-        msg_send($taskQueue, 1, $name);
+        msg_send($taskQueue, 1, ['id' => $id, 'name' => $name, 'attempt' => $attempt]);
 
-        if (receiveResult($resultQueue) === 'OK') {
+        if (receiveResult($resultQueue, $id) === 'OK') {
             echo "Engine: '$name' OK\n";
             return true;
         }
@@ -117,16 +142,22 @@ function runActivity(SysvMessageQueue $taskQueue, SysvMessageQueue $resultQueue,
 // Запуск активности с таймаутом: ждём результат не дольше TIMEOUT_US
 function runActivityWithTimeout(SysvMessageQueue $taskQueue, SysvMessageQueue $resultQueue, string $name): bool
 {
-    msg_send($taskQueue, 1, $name);
+    $id = nextId();
+    msg_send($taskQueue, 1, ['id' => $id, 'name' => $name, 'attempt' => 1]);
     $deadline = hrtime(true) + TIMEOUT_US * 1000;
 
     while (true) {
-        $reply = '';
+        $reply = null;
         $type = 0;
         $error = null;
         if (msg_receive($resultQueue, 1, $type, 1024, $reply, true, MSG_IPC_NOWAIT, $error)) {
-            echo "Engine: '$name' OK\n";
-            return true;
+            if (($reply['id'] ?? null) === $id) {
+                echo "Engine: '$name' OK\n";
+                return true;
+            }
+            // Чужой/устаревший ответ (например, опоздавший SlowCheck) — отбрасываем и ждём дальше
+            echo 'Engine: discarding stale result (id=' . ($reply['id'] ?? '?') . ")\n";
+            continue;
         }
 
         if (hrtime(true) >= $deadline) {
@@ -149,19 +180,6 @@ function checkCancel(SysvMessageQueue $signalQueue): bool
     return false;
 }
 
-// Вычитка всех накопленных ответов (после таймаута мог остаться поздний ответ)
-function drain(SysvMessageQueue $queue): void
-{
-    while (true) {
-        $msg = '';
-        $type = 0;
-        $error = null;
-        if (!msg_receive($queue, 1, $type, 1024, $msg, true, MSG_IPC_NOWAIT, $error)) {
-            break;
-        }
-    }
-}
-
 // ---- Workflow 1: retry (Charge падает 2 раза, потом успех) ----
 echo "\n=== Workflow 'order' (retry demo) ===\n";
 $state = 'running';
@@ -178,7 +196,6 @@ if ($state === 'running') {
 echo "Engine: workflow 'order' -> state: $state\n";
 
 // ---- Workflow 2: timeout (SlowCheck не успевает) ----
-drain($resultQueue);
 echo "\n=== Workflow 'slow' (timeout demo) ===\n";
 $state = 'running';
 echo "Engine: workflow 'slow' -> state: $state\n";
@@ -188,7 +205,6 @@ if (!runActivityWithTimeout($taskQueue, $resultQueue, 'SlowCheck')) {
 echo "Engine: workflow 'slow' -> state: $state\n";
 
 // ---- Workflow 3: signal (оператор отменяет workflow) ----
-drain($resultQueue);
 echo "\n=== Workflow 'cancelable' (signal demo) ===\n";
 $state = 'running';
 echo "Engine: workflow 'cancelable' -> state: $state\n";
