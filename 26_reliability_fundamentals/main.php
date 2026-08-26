@@ -27,13 +27,17 @@ if ($slowPid === 0) {
 msg_send($q, 1, 'request-1');
 $deadline = hrtime(true) + 200000 * 1000; // ждём максимум 200мс
 $reply = null;
+$gotReply = false;
 while (hrtime(true) < $deadline) {
     if (msg_receive($q, 2, $t, 1024, $reply, true, MSG_IPC_NOWAIT, $e)) {
+        $gotReply = true;
         break;
     }
     usleep(10000);
 }
-if ($reply === null) {
+// Не проверяем $reply === null: неудачный msg_receive() перезаписывает
+// $reply в false, а не оставляет как было — нужен отдельный флаг.
+if (!$gotReply) {
     echo "TIMEOUT after 200ms: request-1 considered failed\n";
 }
 pcntl_waitpid($slowPid, $status);
@@ -170,6 +174,10 @@ shm_put_var($shm, 1001, 0); // счётчик эффектов (общий ме�
 function charge(string $key, $shm, $sem): void
 {
     sem_acquire($sem);                          // критическая секция
+    // Учебное упрощение: slot по crc32 % 1000 может коллизировать для разных
+    // key (ложный "already processed"). В проде — уникальный ключ в
+    // хеш-таблице/БД (например по самому $key), а не modulo с фиксированным
+    // числом слотов.
     $slot = crc32($key) % 1000 + 1;
     if (shm_has_var($shm, $slot)) {
         echo "  idempotency: key '$key' already processed, SKIPPING\n";
