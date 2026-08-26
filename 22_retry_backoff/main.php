@@ -10,13 +10,14 @@ const BASE_DELAY_MS = 100;
 $taskQueue = msg_get_queue(ftok(__FILE__, 'm'), 0666);
 $resultQueue = msg_get_queue(ftok(__FILE__, 'r'), 0666);
 
-// Worker: выполняет задачу. Первые 2 раза — падает (имитация аварии сервиса)
+// Worker: выполняет задачу. Первые 4 раза — падает (имитация аварии сервиса),
+// чтобы демо реально прошло всю прогрессию задержек 100->200->400->800мс
 $workerPid = pcntl_fork();
 if ($workerPid === -1) {
     die('fork failed');
 }
 if ($workerPid === 0) {
-    $fails = 2;
+    $fails = 4;
     while (true) {
         $task = '';
         $type = 0;
