@@ -198,9 +198,12 @@ foreach ($workerStreams as $i => $stream) {
     }, "worker{$i}");
 }
 
-// 5.2. Таймер (callback) — heartbeat планировщика
+// 5.2. Таймер (callback) — разовый отложенный вызов через addTimer().
+// НЕ heartbeat: addTimer() одноразовый (см. runLoop — сработавший таймер
+// удаляется), периодический "пульс" ниже (5.3, daemon) сделан через фибру
+// с циклом awaitMs(), а не через повторную регистрацию этого таймера.
 addTimer(500, function (): void {
-    printf("  [heartbeat] тик на %.2fs\n", microtime(true) - $GLOBALS['t0']);
+    printf("  [timer] сработал на %.2fs (один раз)\n", microtime(true) - $GLOBALS['t0']);
 });
 
 // 5.3. Фоновая "задача-демон": считает что-то периодически

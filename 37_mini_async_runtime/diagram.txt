@@ -2,16 +2,16 @@ Mini Async Runtime (capstone: event loop + фибры + таймеры + async I
 
    Один процесс, один поток — много кооперативных задач
    ┌───────────────────────────────────────────────────────────┐
-   │  fiber#0 (worker) ── awaitRead(s0) ── suspend ─┐          │
-   │  fiber#1 (worker) ── awaitRead(s1) ── suspend ─┤          │
-   │  fiber#2 (worker) ── awaitRead(s2) ── suspend ─┤          │
-   │  fiber#3 (daemon) ── awaitMs(400)  ── suspend ─┤          │
-   │  timer   (heartbeat) ──────────────── onDue ───┤          │
-   │                                                ▼          │
+   │  fiber#0 (worker)  ── awaitRead(s0) ── suspend ─┐         │
+   │  fiber#1 (worker)  ── awaitRead(s1) ── suspend ─┤         │
+   │  fiber#2 (worker)  ── awaitRead(s2) ── suspend ─┤         │
+   │  fiber#3 (daemon)  ── awaitMs(400)  ── suspend ─┤         │
+   │  timer   (разовый) ─────────────────── onDue ───┤         │
+   │                                                 ▼         │
    │                        Event Loop:                        │
    │                  stream_select(read+write)                │
    │                  + timer queue (ближайший дедлайн)        │
-   │                                                 │         │
+   │                                         │                 │
    │   готовые: resume('ready') ──► fiber обрабатывает         │
    │            resume('tick')  ──► демон продолжает           │
    └───────────────────────────────────────────────────────────┘
@@ -22,8 +22,8 @@ Mini Async Runtime (capstone: event loop + фибры + таймеры + async I
 
    Состав:
    - awaitRead / awaitWrite  — async I/O через select
-   - awaitMs + timer queue   — таймеры (в т.ч. callback-heartbeat)
-   - scheduleTask           — scheduler: планирует кооперативную фибру-задачу
+   - awaitMs + timer queue   — таймеры (fiber-таймер + разовый callback-таймер)
+   - scheduleTask            — scheduler: планирует кооперативную фибру-задачу
    - runLoop                 — сердце рантайма
 
 ─────────────────────────────────────────
