@@ -37,9 +37,12 @@ function parallelMap(array $items, callable $fn, int $workers): array
                 if ($task === STOP_MSG) {
                     break;
                 }
-                $parsed = unserialize($task);
+                // json, а не serialize()/unserialize(): unserialize() на данных
+                // из очереди — риск PHP object injection, если payload когда-то
+                // придёт не только от доверенного родителя (см. 17_rpc)
+                $parsed = json_decode($task, true);
                 $result = $fn($parsed['value']);
-                msg_send($resultQueue, 1, serialize(['index' => $parsed['index'], 'result' => $result]));
+                msg_send($resultQueue, 1, json_encode(['index' => $parsed['index'], 'result' => $result]));
             }
             exit(0);
         }
@@ -48,7 +51,7 @@ function parallelMap(array $items, callable $fn, int $workers): array
 
     // Fan-Out
     foreach ($items as $index => $value) {
-        msg_send($taskQueue, 1, serialize(['index' => $index, 'value' => $value]));
+        msg_send($taskQueue, 1, json_encode(['index' => $index, 'value' => $value]));
     }
 
     // Fan-In: собираем и раскладываем по индексу (порядок сохраняется)
@@ -60,7 +63,7 @@ function parallelMap(array $items, callable $fn, int $workers): array
         $type = 0;
         $error = null;
         if (msg_receive($resultQueue, 1, $type, 1024, $msg, true, MSG_IPC_NOWAIT, $error)) {
-            $parsed = unserialize($msg);
+            $parsed = json_decode($msg, true);
             $results[$parsed['index']] = $parsed['result'];
             $received++;
         } else {
