@@ -13,7 +13,9 @@
 //     │  fwrite("pong")            ──┼────▶ fgets → pong
 //     ▼                              ▼
 
-$socketPath = '/tmp/ipc_example.sock';
+// Уникальный путь на каждый запуск — иначе параллельный запуск двух
+// инстансов этого урока конфликтует за один и тот же файл сокета.
+$socketPath = sys_get_temp_dir() . '/ipc_example_' . getmypid() . '.sock';
 
 if (file_exists($socketPath)) {
     unlink($socketPath);
