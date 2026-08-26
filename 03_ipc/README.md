@@ -17,7 +17,7 @@
 | `msg_queue.php` | System V очередь | сообщения в ядре, не привязаны к процессу-создателю |
 | `pipe.php` | Unix socket pair | пара соединённых двунаправленных сокетов |
 | `semaphore.php` | System V семафор | атомарный доступ к критической секции |
-| `shmop.php` | Shared memory | общий сегмент памяти для всех процессов |
+| `shmop.php` | Shared memory | общий сегмент памяти для всех процессов (sysvshm API, см. ниже) |
 | `signals.php` | Сигналы | только событие, без данных (`posix_kill`) |
 | `unix_socket.php` | AF_UNIX сокет | файл в /tmp как точка входа в канал |
 
@@ -29,7 +29,10 @@
 - `pipe.php`: `stream_socket_pair` — это **не** классический `pipe()`: socket pair
   двунаправленный, а `pipe()` однонаправленный (read-конец + write-конец).
 - `semaphore`: `sem_get`, `sem_acquire`, `sem_release`, `sem_remove`.
-- `shmop`: `shm_attach`, `shm_put_var`, `shm_get_var`, `shm_remove`.
+- `shmop`: `shm_attach`, `shm_put_var`, `shm_get_var`, `shm_remove` — это API
+  расширения **sysvshm** (переменные). Несмотря на имя файла, это не функции
+  `shmop_open`/`shmop_read`/`shmop_write` из расширения `ext-shmop` (байты) —
+  разные расширения, у обоих в названии "shm".
 - `signals`: `pcntl_signal`, `pcntl_async_signals`, `posix_kill`.
 - `unix_socket`: `stream_socket_server`/`stream_socket_client` на `unix://` пути.
 
