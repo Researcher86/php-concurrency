@@ -66,7 +66,7 @@ while ($results < JOB_COUNT - 1) { // "boom"-job результата не да�
     $got = msg_receive($resultQueue, 1, $type, 1024, $msg, true, MSG_IPC_NOWAIT, $error);
     if ($got) {
         $results++;
-        echo "Server: got result '$msg' ($results/$" . (JOB_COUNT - 1) . ")\n";
+        echo "Server: got result '$msg' ($results/" . (JOB_COUNT - 1) . ")\n";
     }
 
     foreach ($pool as $i => $pid) {
