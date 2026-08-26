@@ -33,7 +33,9 @@
   расширения **sysvshm** (переменные). Несмотря на имя файла, это не функции
   `shmop_open`/`shmop_read`/`shmop_write` из расширения `ext-shmop` (байты) —
   разные расширения, у обоих в названии "shm".
-- `signals`: `pcntl_signal`, `pcntl_async_signals`, `posix_kill`.
+- `signals`: `pcntl_signal`, `pcntl_signal_dispatch` (ручной опрос в цикле, а
+  не `pcntl_async_signals`), `posix_kill`. Это единственный урок курса с
+  dispatch-моделью — почти везде дальше используется `pcntl_async_signals(true)`.
 - `unix_socket`: `stream_socket_server`/`stream_socket_client` на `unix://` пути.
 
 ## Паттерн
