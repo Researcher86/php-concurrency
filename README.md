@@ -170,3 +170,46 @@ docker compose exec -T php sh -c \
 параллелизм и изоляцию, фибры — лёгкую кооперативную конкурентность для
 I/O-bound задач. Урок 38 сравнивает их с замерами (memory / throughput /
 latency) и показывает границы каждой модели.
+
+## Связанные проекты
+
+Курс входит в [**php-systems-lab**](https://github.com/Researcher86/php-systems-lab)
+— набор учебных проектов по backend- и системному программированию на PHP.
+Ни один из них не подключается к другому как пакет: между ними переносится
+механизм, а не код — прочитанный в одном и переписанный в следующем.
+
+### [php-memory-lab](https://github.com/Researcher86/php-memory-lab) — те же механизмы, другой вопрос
+
+Пересечение с этим курсом намеренное, и его стоит назвать вслух. Уроки
+`01_fork`, `02_process_lifecycle`, `03_ipc`, `05_producer_consumer` и
+`07_backpressure` разбирают те же механизмы, что фазы 3–7 в `php-memory-lab`,
+а два имени совпадают дословно.
+
+Отличается вопрос:
+
+```text
+php-concurrency       как скоординировать работу между процессами?
+                      → отвечает паттернами
+
+php-memory-lab        во что этот механизм обходится в страницах и копиях?
+                      → отвечает через RssShmem, Pss, Private_Dirty
+```
+
+Поэтому `php-memory-lab` приходит к выводу, который здесь не измеряется:
+Unix-сокет обгоняет разделяемую память, потому что нужный ей семафор стоит
+дороже копии, которую она экономит. Здесь — как устроен паттерн; там — сколько
+он стоит.
+
+### Остальные проекты набора
+
+| Проект | О чём |
+|---|---|
+| [`php-worker-pool`](https://github.com/Researcher86/php-worker-pool) | долгоживущий пул воркеров: мастер, lifecycle, recycling, graceful shutdown |
+| [`php-job-queue`](https://github.com/Researcher86/php-job-queue) | надёжная фоновая обработка: reservation, ACK, retry, DLQ |
+| [`php-mini-cache`](https://github.com/Researcher86/php-mini-cache) | event-driven in-memory сервер: TCP, event loop, протокол, TTL, Pub/Sub |
+| [`php-mini-http-server`](https://github.com/Researcher86/php-mini-http-server) | HTTP-сервер на event loop: парсинг, роутинг, middleware, keep-alive |
+| [`php-mini-database`](https://github.com/Researcher86/php-mini-database) | движок хранения: страницы, индексы, SQL, транзакции, WAL, recovery |
+
+Уроки 06, 12, 30–32 этого курса — компактные прототипы того, что
+`php-worker-pool` доводит до рабочего рантайма; уроки 18 и 35–37 — то же
+самое для `php-mini-cache` и `php-mini-http-server`.
