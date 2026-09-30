@@ -1,7 +1,9 @@
 # PHP Concurrency
 
-**Практический курс по конкурентности в PHP: от `pcntl` и IPC до Fibers,
-event loop и асинхронного I/O.**
+**[🧪 PHP Systems Lab](https://github.com/Researcher86/php-systems-lab)** · Level 2 of 8 · ← [`php-memory-lab`](https://github.com/Researcher86/php-memory-lab) · [`php-worker-pool`](https://github.com/Researcher86/php-worker-pool) →
+
+> Практический курс по конкурентности в PHP: от `pcntl` и IPC до Fibers,
+> event loop и асинхронного I/O.
 
 Вместо того чтобы сразу использовать высокоуровневые фреймворки, курс
 помогает понять, как работают механизмы конкурентности, реализуя их с нуля.
@@ -171,21 +173,36 @@ docker compose exec -T php sh -c \
 I/O-bound задач. Урок 38 сравнивает их с замерами (memory / throughput /
 latency) и показывает границы каждой модели.
 
-## Связанные проекты
+## PHP Systems Lab
 
-Курс входит в [**php-systems-lab**](https://github.com/Researcher86/php-systems-lab)
-— набор учебных проектов по backend- и системному программированию на PHP.
-Ни один из них не подключается к другому как пакет: между ними переносится
-механизм, а не код — прочитанный в одном и переписанный в следующем.
+This project is part of [**PHP Systems Lab**](https://github.com/Researcher86/php-systems-lab) — a collection of small
+educational PHP projects that rebuild the mechanisms behind backend
+infrastructure in order to understand them. The recommended order:
 
-### [php-memory-lab](https://github.com/Researcher86/php-memory-lab) — те же механизмы, другой вопрос
+| Level | Project | Focus |
+| ----- | ------- | ----- |
+| 1 | 🧠 [`php-memory-lab`](https://github.com/Researcher86/php-memory-lab) | memory, RSS, fork, copy-on-write, `mmap`, shared memory, FFI |
+| **2** | ⚡ **`php-concurrency`** (this project) | **processes, IPC, concurrency patterns, event loops, Fibers (course in Russian)** |
+| 3 | ⚙️ [`php-worker-pool`](https://github.com/Researcher86/php-worker-pool) | persistent master/worker pool, supervision, graceful shutdown |
+| 4 | 📬 [`php-job-queue`](https://github.com/Researcher86/php-job-queue) | reliable background jobs: delivery leases, ACK, retries, DLQ |
+| 5 | 💾 [`php-mini-cache`](https://github.com/Researcher86/php-mini-cache) | event-driven in-memory server: RESP, pipelining, TTL, Pub/Sub |
+| 6 | 🌐 [`php-mini-http-server`](https://github.com/Researcher86/php-mini-http-server) | event-driven HTTP server: parsing, routing, middleware, keep-alive |
+| 7 | 🗄️ [`php-mini-database`](https://github.com/Researcher86/php-mini-database) | relational engine: pages, B-trees, SQL, transactions, WAL, recovery |
+| 8 | 🏗️ [`php-systems-platform`](https://github.com/Researcher86/php-systems-platform) | integration of the components into one backend platform |
 
-Пересечение с этим курсом намеренное, и его стоит назвать вслух. Уроки
-`01_fork`, `02_process_lifecycle`, `03_ipc`, `05_producer_consumer` и
-`07_backpressure` разбирают те же механизмы, что фазы 3–7 в `php-memory-lab`,
-а два имени совпадают дословно.
+These are teaching projects, not libraries: a mechanism travels between them
+by being read in one and reimplemented in the next. Levels 1–7 do not depend
+on each other as packages. Only [`php-systems-platform`](https://github.com/Researcher86/php-systems-platform) requires the
+five components (worker pool, job queue, cache, HTTP server, database)
+through Composer and runs them together as one system.
 
-Отличается вопрос:
+### How this project relates
+
+**[`php-memory-lab`](https://github.com/Researcher86/php-memory-lab) — те же механизмы, другой вопрос.** Пересечение с
+этим курсом намеренное, и его стоит назвать вслух. Уроки `01_fork`,
+`02_process_lifecycle`, `03_ipc`, `05_producer_consumer` и `07_backpressure`
+разбирают те же механизмы, что фазы 3–7 в `php-memory-lab`, а два имени
+совпадают дословно. Отличается вопрос:
 
 ```text
 php-concurrency       как скоординировать работу между процессами?
@@ -200,16 +217,13 @@ Unix-сокет обгоняет разделяемую память, потом
 дороже копии, которую она экономит. Здесь — как устроен паттерн; там — сколько
 он стоит.
 
-### Остальные проекты набора
+**Прототипы следующих уровней.** Уроки 06, 12, 30–32 этого курса — компактные
+прототипы того, что [`php-worker-pool`](https://github.com/Researcher86/php-worker-pool) доводит до рабочего рантайма;
+урок 26 — фундамент для [`php-job-queue`](https://github.com/Researcher86/php-job-queue); уроки 18 и 35–37 — то же
+самое для [`php-mini-cache`](https://github.com/Researcher86/php-mini-cache) и [`php-mini-http-server`](https://github.com/Researcher86/php-mini-http-server).
 
-| Проект | О чём |
-|---|---|
-| [`php-worker-pool`](https://github.com/Researcher86/php-worker-pool) | долгоживущий пул воркеров: мастер, lifecycle, recycling, graceful shutdown |
-| [`php-job-queue`](https://github.com/Researcher86/php-job-queue) | надёжная фоновая обработка: reservation, ACK, retry, DLQ |
-| [`php-mini-cache`](https://github.com/Researcher86/php-mini-cache) | event-driven in-memory сервер: TCP, event loop, протокол, TTL, Pub/Sub |
-| [`php-mini-http-server`](https://github.com/Researcher86/php-mini-http-server) | HTTP-сервер на event loop: парсинг, роутинг, middleware, keep-alive |
-| [`php-mini-database`](https://github.com/Researcher86/php-mini-database) | движок хранения: страницы, индексы, SQL, транзакции, WAL, recovery |
+---
 
-Уроки 06, 12, 30–32 этого курса — компактные прототипы того, что
-`php-worker-pool` доводит до рабочего рантайма; уроки 18 и 35–37 — то же
-самое для `php-mini-cache` и `php-mini-http-server`.
+## License
+
+MIT.
