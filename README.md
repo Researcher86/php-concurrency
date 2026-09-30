@@ -1,6 +1,6 @@
 # PHP Concurrency
 
-**[🧪 PHP Systems Lab](https://github.com/Researcher86/php-systems-lab)** · Level 2 of 8 · ← [`php-memory-lab`](https://github.com/Researcher86/php-memory-lab) · [`php-worker-pool`](https://github.com/Researcher86/php-worker-pool) →
+**[🧪 PHP Systems Lab](https://github.com/Researcher86/php-systems-lab)** · Уровень 2 из 8 · ← [`php-memory-lab`](https://github.com/Researcher86/php-memory-lab) · [`php-worker-pool`](https://github.com/Researcher86/php-worker-pool) →
 
 > Практический курс по конкурентности в PHP: от `pcntl` и IPC до Fibers,
 > event loop и асинхронного I/O.
@@ -175,28 +175,28 @@ latency) и показывает границы каждой модели.
 
 ## PHP Systems Lab
 
-This project is part of [**PHP Systems Lab**](https://github.com/Researcher86/php-systems-lab) — a collection of small
-educational PHP projects that rebuild the mechanisms behind backend
-infrastructure in order to understand them. The recommended order:
+Курс входит в [**PHP Systems Lab**](https://github.com/Researcher86/php-systems-lab) — набор небольших
+учебных проектов на PHP, которые заново собирают механизмы backend-инфраструктуры,
+чтобы понять, как они устроены. Рекомендуемый порядок:
 
-| Level | Project | Focus |
-| ----- | ------- | ----- |
-| 1 | 🧠 [`php-memory-lab`](https://github.com/Researcher86/php-memory-lab) | memory, RSS, fork, copy-on-write, `mmap`, shared memory, FFI |
-| **2** | ⚡ **`php-concurrency`** (this project) | **processes, IPC, concurrency patterns, event loops, Fibers (course in Russian)** |
-| 3 | ⚙️ [`php-worker-pool`](https://github.com/Researcher86/php-worker-pool) | persistent master/worker pool, supervision, graceful shutdown |
-| 4 | 📬 [`php-job-queue`](https://github.com/Researcher86/php-job-queue) | reliable background jobs: delivery leases, ACK, retries, DLQ |
-| 5 | 💾 [`php-mini-cache`](https://github.com/Researcher86/php-mini-cache) | event-driven in-memory server: RESP, pipelining, TTL, Pub/Sub |
-| 6 | 🌐 [`php-mini-http-server`](https://github.com/Researcher86/php-mini-http-server) | event-driven HTTP server: parsing, routing, middleware, keep-alive |
-| 7 | 🗄️ [`php-mini-database`](https://github.com/Researcher86/php-mini-database) | relational engine: pages, B-trees, SQL, transactions, WAL, recovery |
-| 8 | 🏗️ [`php-systems-platform`](https://github.com/Researcher86/php-systems-platform) | integration of the components into one backend platform |
+| Уровень | Проект | О чём |
+| ------- | ------ | ----- |
+| 1 | 🧠 [`php-memory-lab`](https://github.com/Researcher86/php-memory-lab) | память, RSS, fork, copy-on-write, `mmap`, разделяемая память, FFI |
+| **2** | ⚡ **`php-concurrency`** (этот курс) | **процессы, IPC, паттерны конкурентности, event loop, Fibers** |
+| 3 | ⚙️ [`php-worker-pool`](https://github.com/Researcher86/php-worker-pool) | долгоживущий пул master/worker, супервизия, graceful shutdown |
+| 4 | 📬 [`php-job-queue`](https://github.com/Researcher86/php-job-queue) | надёжные фоновые задачи: delivery leases, ACK, retry, DLQ |
+| 5 | 💾 [`php-mini-cache`](https://github.com/Researcher86/php-mini-cache) | event-driven in-memory сервер: RESP, pipelining, TTL, Pub/Sub |
+| 6 | 🌐 [`php-mini-http-server`](https://github.com/Researcher86/php-mini-http-server) | event-driven HTTP-сервер: парсинг, роутинг, middleware, keep-alive |
+| 7 | 🗄️ [`php-mini-database`](https://github.com/Researcher86/php-mini-database) | реляционный движок: страницы, B-деревья, SQL, транзакции, WAL, recovery |
+| 8 | 🏗️ [`php-systems-platform`](https://github.com/Researcher86/php-systems-platform) | интеграция компонентов в одну backend-платформу |
 
-These are teaching projects, not libraries: a mechanism travels between them
-by being read in one and reimplemented in the next. Levels 1–7 do not depend
-on each other as packages. Only [`php-systems-platform`](https://github.com/Researcher86/php-systems-platform) requires the
-five components (worker pool, job queue, cache, HTTP server, database)
-through Composer and runs them together as one system.
+Это учебные проекты, а не библиотеки: механизм переходит из одного в другой
+не кодом, а тем, что его прочитали в одном и переписали в следующем. Уровни
+1–7 не зависят друг от друга как пакеты. Только [`php-systems-platform`](https://github.com/Researcher86/php-systems-platform)
+подключает через Composer пять компонентов (пул воркеров, очередь задач, кэш,
+HTTP-сервер, базу данных) и запускает их вместе как одну систему.
 
-### How this project relates
+### Как курс связан с остальными
 
 **[`php-memory-lab`](https://github.com/Researcher86/php-memory-lab) — те же механизмы, другой вопрос.** Пересечение с
 этим курсом намеренное, и его стоит назвать вслух. Уроки `01_fork`,
@@ -224,6 +224,6 @@ Unix-сокет обгоняет разделяемую память, потом
 
 ---
 
-## License
+## Лицензия
 
 MIT.
