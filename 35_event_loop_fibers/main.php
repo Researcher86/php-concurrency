@@ -35,14 +35,12 @@ function makeReader(int $idx, $stream): Fiber
 {
     return new Fiber(function () use ($idx, $stream): void {
         while (true) {
-            // Запрос на ожидание: suspend отдаёт ['read', $stream], loop вернёт 'ready'
-            $req = Fiber::suspend(['read', $stream]);
-            if ($req !== 'ready') {
-                continue;
-            }
+            // Запрос на ожидание: suspend отдаёт ['read', $stream], loop будит, когда готов
+            Fiber::suspend(['read', $stream]);
             $line = fgets($stream);
             if ($line === false) {
                 echo "fiber#{$idx}: EOF\n";
+                fclose($stream);
                 return;
             }
             echo "fiber#{$idx}: " . rtrim($line, "\n") . "\n";
@@ -55,10 +53,7 @@ function makeHeartbeat(float $intervalSec, int $max): Fiber
 {
     return new Fiber(function () use ($intervalSec, $max): void {
         for ($i = 1; $i <= $max; $i++) {
-            $req = Fiber::suspend(['timer', microtime(true) + $intervalSec]);
-            if ($req !== 'tick') {
-                continue;
-            }
+            Fiber::suspend(['timer', microtime(true) + $intervalSec]);
             printf("heartbeat: tick %d @ %.3fs\n", $i, microtime(true) - START_T);
         }
     });
@@ -95,14 +90,9 @@ while ($pending) {
     }
 
     // Таймаут select = до ближайшего таймера (или 1s, если таймеров нет)
-    $now = microtime(true);
-    $sec = 1;
-    $usec = 0;
-    if ($nextAt !== null) {
-        $diff = max(0, $nextAt - $now);
-        $sec = (int) $diff;
-        $usec = (int) (($diff - $sec) * 1000000);
-    }
+    $timeout = $nextAt === null ? 1.0 : max(0, $nextAt - microtime(true));
+    $sec = (int) $timeout;
+    $usec = (int) (($timeout - $sec) * 1000000);
     if ($read) {
         $write = null;
         $except = null;
@@ -115,19 +105,12 @@ while ($pending) {
     $now = microtime(true);
 
     foreach ($pending as $i => $w) {
-        $ready = false;
-        $payload = null;
-        if ($w['req'][0] === 'read' && in_array($w['req'][1], $read, true)) {
-            $ready = true;
-            $payload = 'ready';
-        } elseif ($w['req'][0] === 'timer' && $now >= $w['req'][1]) {
-            $ready = true;
-            $payload = 'tick';
-        }
+        [$kind, $arg] = $w['req'];
+        $ready = $kind === 'read' ? in_array($arg, $read, true) : $now >= $arg;
         if (!$ready) {
             continue;
         }
-        $nextReq = $w['fiber']->resume($payload); // будим; фибра вернёт новый запрос
+        $nextReq = $w['fiber']->resume($kind === 'read' ? 'ready' : 'tick'); // фибра вернёт новый запрос
         if ($w['fiber']->isTerminated()) {
             unset($pending[$i]);
             continue;
