@@ -26,19 +26,15 @@ if ($workerPid === 0) {
         }
 
         // poison-task всегда падает — ей суждено попасть в DLQ
-        $ok = false;
-        $attempt = 0;
-        while (!$ok && $attempt < MAX_RETRIES) {
-            $attempt++;
+        for ($attempt = 1; $attempt <= MAX_RETRIES; $attempt++) {
             echo "Worker: '$task' attempt $attempt\n";
             usleep(20000);
 
-            if ($task !== 'poison-task') {
-                $ok = true;
+            $ok = $task !== 'poison-task';
+            if ($ok) {
+                break;
             }
-            if (!$ok) {
-                usleep(RETRY_DELAY_US);
-            }
+            usleep(RETRY_DELAY_US);
         }
 
         if ($ok) {
@@ -57,25 +53,15 @@ foreach (['order-1', 'poison-task', 'order-2'] as $task) {
     msg_send($taskQueue, 1, $task);
 }
 
-// Останавливаем воркера после того, как он доест очередь
-$deadline = hrtime(true) + 2000000 * 1000;
-while (hrtime(true) < $deadline) {
-    if (msg_stat_queue($taskQueue)['msg_qnum'] === 0) {
-        break;
-    }
-    usleep(10000);
-}
+// Останавливаем воркера: очередь FIFO, поэтому STOP он прочтёт только
+// после всех задач — ждать опустошения очереди не нужно
 msg_send($taskQueue, 1, STOP_MSG);
 pcntl_waitpid($workerPid, $status);
 
 // Разбираем DLQ
-echo 'DLQ contents:' . "\n";
-while (true) {
-    $msg = '';
-    if (!msg_receive($dlqQueue, 1, $type, 1024, $msg, true, MSG_IPC_NOWAIT)) {
-        break;
-    }
-    echo '  ' . $msg . "\n";
+echo "DLQ contents:\n";
+while (msg_receive($dlqQueue, 1, $type, 1024, $msg, true, MSG_IPC_NOWAIT)) {
+    echo "  $msg\n";
 }
 
 msg_remove_queue($taskQueue);
