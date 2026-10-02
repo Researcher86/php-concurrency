@@ -74,9 +74,7 @@ if ($consumerPid === 0) {
     $received = 0;
     while (true) {
         $msg = '';
-        $type = 0;
-        $error = null;
-        if (msg_receive($queue, 1, $type, $messageSize + 256, $msg, true, 0, $error)) {
+        if (msg_receive($queue, 1, $type, $messageSize + 256, $msg)) {
             if ($msg === TERMINATOR) {
                 break;
             }

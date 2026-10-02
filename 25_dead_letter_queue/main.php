@@ -19,9 +19,7 @@ if ($workerPid === -1) {
 if ($workerPid === 0) {
     while (true) {
         $task = '';
-        $type = 0;
-        $error = null;
-        msg_receive($taskQueue, 1, $type, 1024, $task, true, 0, $error);
+        msg_receive($taskQueue, 1, $type, 1024, $task);
 
         if ($task === STOP_MSG) {
             break;
@@ -74,9 +72,7 @@ pcntl_waitpid($workerPid, $status);
 echo 'DLQ contents:' . "\n";
 while (true) {
     $msg = '';
-    $type = 0;
-    $error = null;
-    if (!msg_receive($dlqQueue, 1, $type, 1024, $msg, true, MSG_IPC_NOWAIT, $error)) {
+    if (!msg_receive($dlqQueue, 1, $type, 1024, $msg, true, MSG_IPC_NOWAIT)) {
         break;
     }
     echo '  ' . $msg . "\n";

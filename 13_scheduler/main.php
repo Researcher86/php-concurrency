@@ -40,9 +40,7 @@ for ($w = 1; $w <= WORKER_COUNT; $w++) {
     if ($pid === 0) {
         while (true) {
             $msg = '';
-            $type = 0;
-            $error = null;
-            msg_receive($workerQueues[$w], 1, $type, 1024, $msg, true, 0, $error);
+            msg_receive($workerQueues[$w], 1, $type, 1024, $msg);
 
             if ($msg === 'STOP') {
                 break;
@@ -59,9 +57,7 @@ for ($w = 1; $w <= WORKER_COUNT; $w++) {
 $rr = 0;
 while (true) {
     $msg = '';
-    $type = 0;
-    $error = null;
-    msg_receive($taskQueue, 1, $type, 1024, $msg, true, 0, $error);
+    msg_receive($taskQueue, 1, $type, 1024, $msg);
 
     if ($msg === TERMINATOR) {
         break;

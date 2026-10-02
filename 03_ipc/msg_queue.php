@@ -37,7 +37,6 @@ if ($pid === 0) {
 
 // Consumer (parent): читает 5 сообщений
 for ($i = 1; $i <= 5; $i++) {
-    $msgType = 0;
     $msg = '';
     msg_receive($queue, 0, $msgType, 1024, $msg);
     echo 'consumer ' . getmypid() . ": received [$msgType] $msg\n";

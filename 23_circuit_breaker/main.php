@@ -25,9 +25,7 @@ if ($servicePid === 0) {
 
     while (true) {
         $req = '';
-        $type = 0;
-        $error = null;
-        msg_receive($taskQueue, 1, $type, 1024, $req, true, 0, $error);
+        msg_receive($taskQueue, 1, $type, 1024, $req);
 
         if ($req === 'STOP') {
             break;
@@ -62,9 +60,7 @@ for ($i = 1; $i <= CALL_COUNT; $i++) {
     // Запрос к сервису
     msg_send($taskQueue, 1, "req $i");
     $reply = '';
-    $type = 0;
-    $error = null;
-    msg_receive($resultQueue, 1, $type, 1024, $reply, true, 0, $error);
+    msg_receive($resultQueue, 1, $type, 1024, $reply);
     $ok = $reply === 'OK';
     echo "Breaker: call #$i -> " . ($ok ? 'OK' : 'ERROR') . " (state=$state)\n";
 

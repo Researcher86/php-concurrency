@@ -20,9 +20,7 @@ if ($workerPid === 0) {
     $fails = 4;
     while (true) {
         $task = '';
-        $type = 0;
-        $error = null;
-        msg_receive($taskQueue, 1, $type, 1024, $task, true, 0, $error);
+        msg_receive($taskQueue, 1, $type, 1024, $task);
 
         if ($task === 'STOP') {
             break;
@@ -46,9 +44,7 @@ while ($attempt <= MAX_ATTEMPTS) {
     msg_send($taskQueue, 1, 'flaky-task');
 
     $reply = '';
-    $type = 0;
-    $error = null;
-    msg_receive($resultQueue, 1, $type, 1024, $reply, true, 0, $error);
+    msg_receive($resultQueue, 1, $type, 1024, $reply);
 
     if ($reply === 'OK') {
         echo "Caller: SUCCESS on attempt $attempt\n";

@@ -35,9 +35,7 @@ if ($workerPid === -1) {
 if ($workerPid === 0) {
     while (true) {
         $task = '';
-        $type = 0;
-        $error = null;
-        msg_receive($taskQueue, 1, $type, 1024, $task, true, 0, $error);
+        msg_receive($taskQueue, 1, $type, 1024, $task);
 
         if ($task === 'STOP') {
             break;
@@ -81,9 +79,7 @@ if ($operatorPid === -1) {
 }
 if ($operatorPid === 0) {
     $cmd = '';
-    $type = 0;
-    $error = null;
-    msg_receive($controlQueue, 1, $type, 1024, $cmd, true, 0, $error); // ждём 'go'
+    msg_receive($controlQueue, 1, $type, 1024, $cmd); // ждём 'go'
 
     usleep(100000);
     msg_send($signalQueue, 1, 'cancel');
@@ -108,9 +104,7 @@ function receiveResult(SysvMessageQueue $resultQueue, int $expectedId): string
 {
     while (true) {
         $reply = null;
-        $type = 0;
-        $error = null;
-        msg_receive($resultQueue, 1, $type, 1024, $reply, true, 0, $error);
+        msg_receive($resultQueue, 1, $type, 1024, $reply);
 
         if (($reply['id'] ?? null) === $expectedId) {
             return $reply['status'];
@@ -148,9 +142,7 @@ function runActivityWithTimeout(SysvMessageQueue $taskQueue, SysvMessageQueue $r
 
     while (true) {
         $reply = null;
-        $type = 0;
-        $error = null;
-        if (msg_receive($resultQueue, 1, $type, 1024, $reply, true, MSG_IPC_NOWAIT, $error)) {
+        if (msg_receive($resultQueue, 1, $type, 1024, $reply, true, MSG_IPC_NOWAIT)) {
             if (($reply['id'] ?? null) === $id) {
                 echo "Engine: '$name' OK\n";
                 return true;
@@ -172,9 +164,7 @@ function runActivityWithTimeout(SysvMessageQueue $taskQueue, SysvMessageQueue $r
 function checkCancel(SysvMessageQueue $signalQueue): bool
 {
     $msg = '';
-    $type = 0;
-    $error = null;
-    if (msg_receive($signalQueue, 1, $type, 1024, $msg, true, MSG_IPC_NOWAIT, $error)) {
+    if (msg_receive($signalQueue, 1, $type, 1024, $msg, true, MSG_IPC_NOWAIT)) {
         return $msg === 'cancel';
     }
     return false;

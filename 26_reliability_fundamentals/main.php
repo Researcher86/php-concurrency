@@ -18,7 +18,7 @@ if ($slowPid === -1) {
 }
 if ($slowPid === 0) {
     // Медленный "внешний сервис": отвечает за 500мс
-    msg_receive($q, 1, $t, 1024, $task, true, 0);
+    msg_receive($q, 1, $t, 1024, $task);
     usleep(500000);
     msg_send($q, 2, "done:$task");
     exit(0);
@@ -29,7 +29,7 @@ $deadline = hrtime(true) + 200000 * 1000; // ждём максимум 200мс
 $reply = null;
 $gotReply = false;
 while (hrtime(true) < $deadline) {
-    if (msg_receive($q, 2, $t, 1024, $reply, true, MSG_IPC_NOWAIT, $e)) {
+    if (msg_receive($q, 2, $t, 1024, $reply, true, MSG_IPC_NOWAIT)) {
         $gotReply = true;
         break;
     }
@@ -42,7 +42,7 @@ if (!$gotReply) {
 }
 pcntl_waitpid($slowPid, $status);
 $late = '';
-msg_receive($q, 2, $t, 1024, $late, true, MSG_IPC_NOWAIT, $e);
+msg_receive($q, 2, $t, 1024, $late, true, MSG_IPC_NOWAIT);
 echo "late reply after timeout: " . var_export($late, true) . " (ignored by caller)\n";
 msg_remove_queue($q);
 
@@ -97,7 +97,7 @@ if ($fragile === -1) {
     die('fork failed');
 }
 if ($fragile === 0) {
-    msg_receive($q2, 1, $t, 1024, $task, true, 0);
+    msg_receive($q2, 1, $t, 1024, $task);
     echo "  at-most-once worker: got '$task', crashing mid-processing\n";
     exit(1);
 }
@@ -118,7 +118,7 @@ if ($firstPid === -1) {
     die('fork failed');
 }
 if ($firstPid === 0) {
-    msg_receive($q2, 1, $t, 1024, $task, true, 0);
+    msg_receive($q2, 1, $t, 1024, $task);
     usleep(50000); // "обрабатываю"
     $n = shm_get_var($effects, 1) + 1; // применили side effect (например, списали деньги)
     shm_put_var($effects, 1, $n);
@@ -132,7 +132,7 @@ pcntl_waitpid($firstPid, $status);
 // Мастер ждёт ACK, но его нет — visibility timeout истекает
 $deadline = hrtime(true) + 300000 * 1000;
 while (hrtime(true) < $deadline) {
-    if (msg_receive($q2, 2, $t, 1024, $msg, true, MSG_IPC_NOWAIT, $e)) {
+    if (msg_receive($q2, 2, $t, 1024, $msg, true, MSG_IPC_NOWAIT)) {
         break; // теоретически ACK прийти не должен — воркер #1 умер до него
     }
     usleep(10000);
@@ -147,7 +147,7 @@ if ($secondPid === -1) {
     die('fork failed');
 }
 if ($secondPid === 0) {
-    msg_receive($q2, 1, $t, 1024, $task, true, 0);
+    msg_receive($q2, 1, $t, 1024, $task);
     usleep(50000); // обработал
     $n = shm_get_var($effects, 1) + 1; // side effect применён повторно
     shm_put_var($effects, 1, $n);
@@ -156,7 +156,7 @@ if ($secondPid === 0) {
     exit(0);
 }
 pcntl_waitpid($secondPid, $status);
-msg_receive($q2, 2, $t, 1024, $msg, true, MSG_IPC_NOWAIT, $e); // забрать ACK
+msg_receive($q2, 2, $t, 1024, $msg, true, MSG_IPC_NOWAIT); // забрать ACK
 $total = shm_get_var($effects, 1);
 echo "  at-least-once: task-B delivered 2x -> side effect applied $total times (двойной эффект)\n";
 shm_remove($effects);

@@ -21,9 +21,7 @@ $spawnWorker = function () use ($requestQueue, $resultQueue): int {
         $handled = 0;
         while (true) {
             $req = '';
-            $type = 0;
-            $error = null;
-            msg_receive($requestQueue, 1, $type, 1024, $req, true, 0, $error);
+            msg_receive($requestQueue, 1, $type, 1024, $req);
 
             if ($req === 'STOP') {
                 break;
@@ -64,9 +62,7 @@ $restarts = 0;
 while ($results < REQUEST_COUNT) {
     // подбираем результаты (неблокирующе)
     $msg = '';
-    $type = 0;
-    $error = null;
-    $got = msg_receive($resultQueue, 1, $type, 1024, $msg, true, MSG_IPC_NOWAIT, $error);
+    $got = msg_receive($resultQueue, 1, $type, 1024, $msg, true, MSG_IPC_NOWAIT);
     if ($got) {
         $results++;
     }

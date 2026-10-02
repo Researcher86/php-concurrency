@@ -57,9 +57,7 @@ $deadline = hrtime(true) + 10000000000;
 while (true) {
     // Ответы
     $msg = '';
-    $type = 0;
-    $error = null;
-    if (msg_receive($resultQueue, 1, $type, 1024, $msg, true, MSG_IPC_NOWAIT, $error)) {
+    if (msg_receive($resultQueue, 1, $type, 1024, $msg, true, MSG_IPC_NOWAIT)) {
         echo "Master: got result '$msg'\n";
         $stats['completed']++;
     }

@@ -24,9 +24,7 @@ if ($serverPid === 0) {
 
     while (true) {
         $req = '';
-        $type = 0;
-        $error = null;
-        msg_receive($requestQueue, 1, $type, 1024, $req, true, 0, $error);
+        msg_receive($requestQueue, 1, $type, 1024, $req);
 
         $call = json_decode($req, true);
         if ($call['proc'] === 'shutdown') {
@@ -60,9 +58,7 @@ function rpcCall(SysvMessageQueue $reqQueue, SysvMessageQueue $resQueue, string 
 
     while (true) {
         $reply = '';
-        $type = 0;
-        $error = null;
-        msg_receive($resQueue, 1, $type, 1024, $reply, true, 0, $error);
+        msg_receive($resQueue, 1, $type, 1024, $reply);
         $data = json_decode($reply, true);
 
         // Чужие ответы с другим id игнорируем

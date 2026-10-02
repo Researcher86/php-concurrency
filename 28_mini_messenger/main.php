@@ -32,9 +32,7 @@ function client(SysvMessageQueue $brokerQueue, SysvMessageQueue $inbox, array $m
 
         while (true) {
             $msg = '';
-            $type = 0;
-            $error = null;
-            msg_receive($inbox, 1, $type, 1024, $msg, true, 0, $error);
+            msg_receive($inbox, 1, $type, 1024, $msg);
 
             if ($msg === 'END') {
                 break;
@@ -66,9 +64,7 @@ $pidC = client($brokerQueue, $inboxC, [
 // Broker: принимает сообщения и маршрутизирует
 for ($i = 0; $i < BROKER_MESSAGE_COUNT; $i++) {
     $msg = '';
-    $type = 0;
-    $error = null;
-    msg_receive($brokerQueue, 1, $type, 1024, $msg, true, 0, $error);
+    msg_receive($brokerQueue, 1, $type, 1024, $msg);
 
     if (str_starts_with($msg, 'dm:')) {
         [, $to, $body] = explode(':', $msg, 3);

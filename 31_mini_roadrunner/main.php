@@ -20,9 +20,7 @@ $spawnWorker = function () use ($jobQueue, $resultQueue): int {
         // Persistent-цикл: один процесс обслуживает много jobs
         while (true) {
             $job = '';
-            $type = 0;
-            $error = null;
-            msg_receive($jobQueue, 1, $type, 1024, $job, true, 0, $error);
+            msg_receive($jobQueue, 1, $type, 1024, $job);
 
             if ($job === 'STOP') {
                 break;
@@ -61,9 +59,7 @@ $restarts = 0;
 
 while ($results < JOB_COUNT - 1) { // "boom"-job результата не даёт
     $msg = '';
-    $type = 0;
-    $error = null;
-    $got = msg_receive($resultQueue, 1, $type, 1024, $msg, true, MSG_IPC_NOWAIT, $error);
+    $got = msg_receive($resultQueue, 1, $type, 1024, $msg, true, MSG_IPC_NOWAIT);
     if ($got) {
         $results++;
         echo "Server: got result '$msg' ($results/" . (JOB_COUNT - 1) . ")\n";

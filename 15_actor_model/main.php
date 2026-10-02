@@ -22,10 +22,8 @@ function actorC(SysvMessageQueue $queueB, SysvMessageQueue $queueC): void
 {
     while (true) {
         $msg = '';
-        $type = 0;
-        $error = null;
 
-        if (msg_receive($queueC, 1, $type, 1024, $msg, true, 0, $error)) {
+        if (msg_receive($queueC, 1, $type, 1024, $msg)) {
             if ($msg === 'stop') {
                 break;
             }
@@ -47,10 +45,8 @@ if ($pidA === 0) {
 
     while (true) {
         $msg = '';
-        $type = 0;
-        $error = null;
 
-        if (msg_receive($queueA, 1, $type, 1024, $msg, true, 0, $error)) {
+        if (msg_receive($queueA, 1, $type, 1024, $msg)) {
             if ($msg === 'stop') {
                 break;
             }
@@ -80,10 +76,8 @@ if ($pidB === 0) {
 
     while (true) {
         $msg = '';
-        $type = 0;
-        $error = null;
 
-        if (msg_receive($queueB, 1, $type, 1024, $msg, true, 0, $error)) {
+        if (msg_receive($queueB, 1, $type, 1024, $msg)) {
             if ($msg === 'stop') {
                 break;
             }
