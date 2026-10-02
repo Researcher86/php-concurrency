@@ -8,12 +8,16 @@
 const TASKS = 100;
 const IO_MS = 20;   // симулируемая "латентность" на задачу
 const CHUNK = 10;   // процессный I/O-замер: форкаем батчами
+const CPU_MS = 800; // длительность одной CPU-bound задачи
 
 // ---------- 1. Сравнительная таблица ----------
+// mb_str_pad, а не printf('%-24s'): printf считает байты, и кириллица
+// (2 байта на символ) ломала выравнивание колонок
+$row = fn(string $a, string $b, string $c): string => mb_str_pad($a, 26) . ' | ' . mb_str_pad($b, 33) . " | $c\n";
+$line = str_repeat('-', 120) . "\n";
+
 echo "=== Модели конкурентности в PHP ===\n";
-echo str_pad('', 76, '-') . "\n";
-printf("%-24s | %-24s | %-24s\n", 'Аспект', 'pcntl_fork (процесс)', 'Fiber (фибра)');
-echo str_pad('', 76, '-') . "\n";
+echo $line . $row('Аспект', 'pcntl_fork (процесс)', 'Fiber (фибра)') . $line;
 $rows = [
     ['Единица выполнения', 'Process', 'Fiber'],
     ['Адресное пространство', 'отдельное', 'общее (тот же процесс)'],
@@ -27,10 +31,10 @@ $rows = [
     ['CPU-bound', 'подходит', 'не ускоряет (нет параллелизма)'],
     ['I/O-bound (HTTP/DB/socket)', 'можно, но дорого по памяти', 'эффективный вариант (при non-blocking I/O + event loop)'],
 ];
-foreach ($rows as [$a, $b, $c]) {
-    printf("%-24s | %-24s | %-24s\n", $a, $b, $c);
+foreach ($rows as $cells) {
+    echo $row(...$cells);
 }
-echo str_pad('', 76, '-') . "\n";
+echo $line;
 
 // ---------- 2. Стоимость fork (контекст для замеров) ----------
 $t0 = microtime(true);
@@ -128,9 +132,8 @@ printf("Фибры  (event loop): %6.2fs (пик памяти ЭТОГО про�
 // задач больше, чем ядер — oversubscription: процессы делят ядра, и замер
 // приближается к последовательному.
 $nproc = max(2, (int) (shell_exec('nproc') ?: 4));
-$CPU_TASKS = $nproc;
-$CPU_MS = 800;
-echo "\n=== CPU-bound: " . $CPU_TASKS . " задач × " . $CPU_MS . "ms вычислений (nproc=" . $nproc . ") ===\n";
+$cpuTasks = $nproc;
+echo "\n=== CPU-bound: $cpuTasks задач × " . CPU_MS . "ms вычислений (nproc=$nproc) ===\n";
 
 $burn = function (int $ms): void {
     $end = hrtime(true) + $ms * 1000000;
@@ -141,18 +144,18 @@ $burn = function (int $ms): void {
 
 // 4.1. Последовательно
 $t0 = microtime(true);
-for ($i = 0; $i < $CPU_TASKS; $i++) {
-    $burn($CPU_MS);
+for ($i = 0; $i < $cpuTasks; $i++) {
+    $burn(CPU_MS);
 }
 $cpuSeq = microtime(true) - $t0;
 
-// 4.2. Процессы (все $CPU_TASKS сразу — параллельно на ядрах)
+// 4.2. Процессы (все $cpuTasks сразу — параллельно на ядрах)
 $t0 = microtime(true);
 $children = [];
-for ($j = 0; $j < $CPU_TASKS; $j++) {
+for ($j = 0; $j < $cpuTasks; $j++) {
     $pid = pcntl_fork();
     if ($pid === 0) {
-        $burn($CPU_MS);
+        $burn(CPU_MS);
         exit(0);
     }
     $children[] = $pid;
@@ -164,10 +167,8 @@ $cpuProc = microtime(true) - $t0;
 
 // 4.3. Фибры (НЕ дают parallelism: последовательное исполнение, кооперация не помогает CPU)
 $fibers = [];
-for ($i = 0; $i < $CPU_TASKS; $i++) {
-    $fibers[] = new Fiber(function () use ($burn, $CPU_MS): void {
-        $burn($CPU_MS);
-    });
+for ($i = 0; $i < $cpuTasks; $i++) {
+    $fibers[] = new Fiber(fn() => $burn(CPU_MS));
 }
 $t0 = microtime(true);
 foreach ($fibers as $f) {
@@ -176,8 +177,8 @@ foreach ($fibers as $f) {
 $cpuFiber = microtime(true) - $t0;
 
 printf("Последовательно : %6.2fs\n", $cpuSeq);
-printf("Процессы (пар-но): %6.2fs (≈ %dms + fork; ускорение ≈ число ядер %d)\n", $cpuProc, $CPU_MS, $nproc);
-printf("Фибры           : %6.2fs (≈ %dms×%d — НОЛЬ parallelism)\n", $cpuFiber, $CPU_MS, $CPU_TASKS);
+printf("Процессы (пар-но): %6.2fs (≈ %dms + fork; ускорение ≈ число ядер %d)\n", $cpuProc, CPU_MS, $nproc);
+printf("Фибры           : %6.2fs (≈ %dms×%d — НОЛЬ parallelism)\n", $cpuFiber, CPU_MS, $cpuTasks);
 
 // ---------- 5. Вердикт ----------
 echo "\n=== Вывод ===\n";
