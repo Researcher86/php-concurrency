@@ -20,7 +20,8 @@
 
 ## IPC
 
-Две System V очереди (task/result); payload — `serialize(['index' => ..])`.
+Две System V очереди (task/result); payload — `json_encode(['index' => .., 'value' => ..])`,
+отправляется с `serialize=false` (без `unserialize()` на приёме).
 
 ## Паттерн
 

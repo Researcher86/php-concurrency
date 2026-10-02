@@ -25,24 +25,14 @@ function parallelMap(array $items, callable $fn, int $workers): array
             die('fork failed');
         }
         if ($pid === 0) {
-            while (true) {
-                $task = '';
-                $type = 0;
-                $error = null;
-                $got = msg_receive($taskQueue, 1, $type, 1024, $task, true, MSG_IPC_NOWAIT, $error);
-                if (!$got) {
-                    usleep(5000);
-                    continue;
-                }
-                if ($task === STOP_MSG) {
-                    break;
-                }
-                // json, а не serialize()/unserialize(): unserialize() на данных
-                // из очереди — риск PHP object injection, если payload когда-то
-                // придёт не только от доверенного родителя (см. 17_rpc)
+            // json + serialize=false: msg_send/msg_receive по умолчанию гоняют
+            // payload через serialize()/unserialize(), а unserialize() данных из
+            // очереди — риск PHP object injection, если payload когда-то придёт
+            // не только от доверенного родителя
+            while (msg_receive($taskQueue, 1, $type, 1024, $task, false) && $task !== STOP_MSG) {
                 $parsed = json_decode($task, true);
                 $result = $fn($parsed['value']);
-                msg_send($resultQueue, 1, json_encode(['index' => $parsed['index'], 'result' => $result]));
+                msg_send($resultQueue, 1, json_encode(['index' => $parsed['index'], 'result' => $result]), false);
             }
             exit(0);
         }
@@ -51,28 +41,19 @@ function parallelMap(array $items, callable $fn, int $workers): array
 
     // Fan-Out
     foreach ($items as $index => $value) {
-        msg_send($taskQueue, 1, json_encode(['index' => $index, 'value' => $value]));
+        msg_send($taskQueue, 1, json_encode(['index' => $index, 'value' => $value]), false);
     }
 
     // Fan-In: собираем и раскладываем по индексу (порядок сохраняется)
     $results = [];
-    $received = 0;
-    $total = count($items);
-    while ($received < $total) {
-        $msg = '';
-        $type = 0;
-        $error = null;
-        if (msg_receive($resultQueue, 1, $type, 1024, $msg, true, MSG_IPC_NOWAIT, $error)) {
-            $parsed = json_decode($msg, true);
-            $results[$parsed['index']] = $parsed['result'];
-            $received++;
-        } else {
-            usleep(5000);
-        }
+    foreach ($items as $_) {
+        msg_receive($resultQueue, 1, $type, 1024, $msg, false);
+        $parsed = json_decode($msg, true);
+        $results[$parsed['index']] = $parsed['result'];
     }
 
     foreach ($workerPids as $pid) {
-        msg_send($taskQueue, 1, STOP_MSG);
+        msg_send($taskQueue, 1, STOP_MSG, false);
     }
     foreach ($workerPids as $pid) {
         pcntl_waitpid($pid, $status);
