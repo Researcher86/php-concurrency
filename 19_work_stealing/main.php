@@ -18,15 +18,15 @@ for ($w = 1; $w <= WORKER_COUNT; $w++) {
     $homeQueues[$w] = msg_get_queue(ftok(__FILE__, chr(96 + $w)), 0666);
 }
 
+// Флаг и хендлер объявляем ДО fork: ребёнок рождается уже с правильной
+// диспозицией, и ранний SIGTERM не теряется (см. подробности в 06_worker_pool)
+$stop = false;
+pcntl_signal(SIGTERM, function () use (&$stop) {
+    $stop = true;
+});
+
 $workerPids = [];
 for ($w = 1; $w <= WORKER_COUNT; $w++) {
-    // Флаг и хендлер объявляем ДО fork: ребёнок рождается уже с правильной
-    // диспозицией, и ранний SIGTERM не теряется (см. подробности в 03_worker_pool)
-    $stop = false;
-    pcntl_signal(SIGTERM, function () use (&$stop) {
-        $stop = true;
-    });
-
     $pid = pcntl_fork();
     if ($pid === -1) {
         die('fork failed');
@@ -36,23 +36,16 @@ for ($w = 1; $w <= WORKER_COUNT; $w++) {
         $processDelay = ($w === 1) ? 120000 : 10000;
 
         while (!$stop) {
-            $msg = '';
-            $type = 0;
-            $error = null;
-
-            // 1) сначала своя очередь (не блокируемся)
-            $got = msg_receive($homeQueues[$w], 1, $type, 1024, $msg, true, MSG_IPC_NOWAIT, $error);
-            if (!$got) {
-                // 2) потом общая
-                $got = msg_receive($sharedQueue, 1, $type, 1024, $msg, true, MSG_IPC_NOWAIT, $error);
-            }
+            // 1) сначала своя очередь (не блокируемся), 2) потом общая
+            $got = msg_receive($homeQueues[$w], 1, $type, 1024, $msg, true, MSG_IPC_NOWAIT)
+                || msg_receive($sharedQueue, 1, $type, 1024, $msg, true, MSG_IPC_NOWAIT);
             if (!$got) {
                 // 3) иначе крадём из чужих очередей (тоже не блокируясь)
                 foreach ($homeQueues as $other => $q) {
                     if ($other === $w) {
                         continue;
                     }
-                    $got = msg_receive($q, 1, $type, 1024, $msg, true, MSG_IPC_NOWAIT, $error);
+                    $got = msg_receive($q, 1, $type, 1024, $msg, true, MSG_IPC_NOWAIT);
                     if ($got) {
                         echo "Worker$w: STOLE '$msg' from Worker$other\n";
                         break;
@@ -84,18 +77,9 @@ for ($i = 1; $i <= TASK_COUNT; $i++) {
     }
 }
 
-// Ждём все результаты (неблокирующий поллинг)
-$results = 0;
-while ($results < TASK_COUNT) {
-    $msg = '';
-    $type = 0;
-    $error = null;
-    $got = msg_receive($resultQueue, 1, $type, 1024, $msg, true, MSG_IPC_NOWAIT, $error);
-    if ($got) {
-        $results++;
-        continue;
-    }
-    usleep(10000);
+// Ждём все результаты (блокирующий приём: мастеру больше нечего делать)
+for ($results = 0; $results < TASK_COUNT; $results++) {
+    msg_receive($resultQueue, 1, $type, 1024, $msg);
 }
 
 // Останавливаем воркеров сигналом и ждём

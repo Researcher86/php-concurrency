@@ -19,14 +19,7 @@ $spawnWorker = function () use ($requestQueue, $resultQueue): int {
     }
     if ($pid === 0) {
         while (true) {
-            $req = '';
-            $type = 0;
-            $error = null;
-            $got = msg_receive($requestQueue, 1, $type, 1024, $req, true, MSG_IPC_NOWAIT, $error);
-            if (!$got) {
-                usleep(5000);
-                continue;
-            }
+            msg_receive($requestQueue, 1, $type, 1024, $req);
             if ($req === STOP_MSG) {
                 exit(0);
             }

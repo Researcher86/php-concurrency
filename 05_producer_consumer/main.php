@@ -41,22 +41,11 @@ function consumer(SysvMessageQueue $queue): int
     }
 
     if ($pid === 0) {
-        while (true) {
-            $msgType = 0;
-            $msg = '';
-            $error = null;
-
-            $received = msg_receive($queue, 0, $msgType, 1024, $msg, true, MSG_IPC_NOWAIT, $error);
-            if ($received) {
-                if ($msg === TERMINATOR) {
-                    break;
-                }
-                echo 'Consumer ' . getmypid() . ": received $msg\n";
-                usleep(rand(50000, 200000));
-                continue;
-            }
-
-            usleep(10000);
+        // Блокирующий приём: terminator гарантированно придёт, а SIGTERM от
+        // $cleanup убивает консюмера и в msg_receive (хендлера у детей нет).
+        while (msg_receive($queue, 0, $msgType, 1024, $msg) && $msg !== TERMINATOR) {
+            echo 'Consumer ' . getmypid() . ": received $msg\n";
+            usleep(rand(50000, 200000));
         }
         exit(0);
     }

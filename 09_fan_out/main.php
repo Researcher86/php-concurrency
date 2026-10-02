@@ -3,8 +3,6 @@
 // Fan-Out: source раздаёт задачи N worker'ам через общую очередь.
 // Каждый worker забирает следующую свободную задачу (competing consumers).
 
-pcntl_async_signals(true);
-
 const TASK_COUNT = 12;
 const WORKER_COUNT = 3;
 const TERMINATOR = "\0__TERM__\0";
@@ -42,23 +40,10 @@ function worker(SysvMessageQueue $queue, int $id): int
     }
 
     if ($pid === 0) {
-        while (true) {
-            $msgType = 0;
-            $msg = '';
-            $error = null;
-
-            $received = msg_receive($queue, 0, $msgType, 1024, $msg, true, MSG_IPC_NOWAIT, $error);
-            if ($received) {
-                if ($msg === TERMINATOR) {
-                    break;
-                }
-                $result = (int)$msg * 2;
-                echo "Worker$id (" . getmypid() . "): $msg -> $result\n";
-                usleep(rand(50000, 200000));
-                continue;
-            }
-
-            usleep(10000);
+        while (msg_receive($queue, 0, $msgType, 1024, $msg) && $msg !== TERMINATOR) {
+            $result = (int)$msg * 2;
+            echo "Worker$id (" . getmypid() . "): $msg -> $result\n";
+            usleep(rand(50000, 200000));
         }
         exit(0);
     }
