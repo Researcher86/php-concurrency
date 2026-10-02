@@ -81,7 +81,7 @@ while ($results < JOB_COUNT - 1) { // "boom"-job результата не да�
 }
 
 // Останавливаем оставшихся persistent-воркеров
-foreach ($pool as $i => $pid) {
+foreach ($pool as $pid) {
     msg_send($jobQueue, 1, 'STOP');
 }
 foreach ($pool as $pid) {

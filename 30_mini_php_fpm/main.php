@@ -54,51 +54,37 @@ for ($i = 1; $i <= REQUEST_COUNT; $i++) {
     msg_send($requestQueue, 1, "request $i");
 }
 
-// Мастер-цикл: принимает запросы результата и следит за пулом.
-// Упавший (из-за max_requests) воркер тут же перезапускается.
+// Перезапуск умерших (из-за max_requests) воркеров
 $results = 0;
 $restarts = 0;
-
-while ($results < REQUEST_COUNT) {
-    // подбираем результаты (неблокирующе)
-    $msg = '';
-    $got = msg_receive($resultQueue, 1, $type, 1024, $msg, true, MSG_IPC_NOWAIT);
-    if ($got) {
-        $results++;
-    }
-
-    // перезапуск умерших
+$respawnDead = function () use (&$pool, &$restarts, $spawnWorker): void {
     foreach ($pool as $i => $pid) {
-        $reaped = pcntl_waitpid($pid, $status, WNOHANG);
-        if ($reaped > 0) {
+        if (pcntl_waitpid($pid, $status, WNOHANG) > 0) {
             $pool[$i] = $spawnWorker();
             $restarts++;
             echo "Master: respawned dead worker #$i\n";
         }
     }
+};
+
+// Мастер-цикл: подбирает результаты (неблокирующе) и следит за пулом
+while ($results < REQUEST_COUNT) {
+    if (msg_receive($resultQueue, 1, $type, 1024, $msg, true, MSG_IPC_NOWAIT)) {
+        $results++;
+    }
+    $respawnDead();
     usleep(1000);
 }
 
 // Все запросы обработаны. Последний воркер, дошедший до max_requests, мог
 // умереть сразу после отправки результата — даём ему выйти (его usleep 30ms)
 // и засчитываем рестарт, иначе "worker restarts" покажет 0 при живом демо.
+// Новые воркеры запросов уже не получат, поэтому одного прохода достаточно.
 usleep(60000);
-
-do {
-    $reaped = false;
-    foreach ($pool as $i => $pid) {
-        $r = pcntl_waitpid($pid, $status, WNOHANG);
-        if ($r > 0) {
-            $pool[$i] = $spawnWorker();
-            $restarts++;
-            echo "Master: respawned dead worker #$i\n";
-            $reaped = true;
-        }
-    }
-} while ($reaped);
+$respawnDead();
 
 // Останавливаем пул
-foreach ($pool as $i => $pid) {
+foreach ($pool as $pid) {
     msg_send($requestQueue, 1, 'STOP');
 }
 
