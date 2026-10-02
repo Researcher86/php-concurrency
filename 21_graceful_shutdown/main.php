@@ -11,6 +11,7 @@ pcntl_async_signals(true);
 const WORKER_COUNT = 3;
 const TASK_COUNT = 50;
 const STOP_MSG = "\0STOP\0";
+const ACCEPT_DELAY_US = 5000; // темп приёма: 50 × 5мс = 250мс > 200мс до SIGTERM
 
 $taskQueue = msg_get_queue(ftok(__FILE__, 'm'), 0666);
 
@@ -29,20 +30,13 @@ for ($w = 1; $w <= WORKER_COUNT; $w++) {
     }
     if ($pid === 0) {
         while (true) {
-            $msg = '';
-            $type = 0;
-            $error = null;
-            $got = msg_receive($taskQueue, 1, $type, 1024, $msg, true, MSG_IPC_NOWAIT, $error);
+            msg_receive($taskQueue, 1, $type, 1024, $msg);
 
-            if ($got && $msg === STOP_MSG) {
+            if ($msg === STOP_MSG) {
                 break;
             }
-            if ($got) {
-                echo "Worker$w: processed $msg\n";
-                usleep(20000);
-                continue;
-            }
-            usleep(10000);
+            echo "Worker$w: processed $msg\n";
+            usleep(20000);
         }
         exit(0);
     }
@@ -60,9 +54,12 @@ if ($timerPid === 0) {
     exit(0);
 }
 
-// Мастер: принимает задачи, пока не пришёл сигнал
+// Мастер: принимает задачи (по одной раз в ACCEPT_DELAY_US), пока не пришёл сигнал.
+// Без паузы все msg_send() отработали бы мгновенно, и SIGTERM пришёл бы уже
+// после приёма — drain-ветка никогда бы не выполнилась.
 for ($i = 1; $i <= TASK_COUNT && !$isShutdown; $i++) {
     msg_send($taskQueue, 1, "task $i");
+    usleep(ACCEPT_DELAY_US);
 }
 
 if (!$isShutdown) {
