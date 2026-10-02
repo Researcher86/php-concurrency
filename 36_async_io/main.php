@@ -22,7 +22,7 @@ function awaitRead($stream): string
         'fiber' => Fiber::getCurrent(),
         'at' => microtime(true) + 1.0,
     ];
-    return Fiber::suspend(['read', $stream]); // 'ready' | 'eof' | 'timeout'
+    return Fiber::suspend(); // 'ready' | 'eof' | 'timeout'
 }
 
 function awaitMs(int $ms): void
@@ -34,7 +34,7 @@ function awaitMs(int $ms): void
         'fiber' => Fiber::getCurrent(),
         'at' => microtime(true) + $ms / 1000,
     ];
-    Fiber::suspend(['timer', microtime(true) + $ms / 1000]); // 'tick'
+    Fiber::suspend(); // 'tick'
 }
 
 function runEventLoop(): void
@@ -50,14 +50,10 @@ function runEventLoop(): void
             $nextAt = $nextAt === null ? $w['at'] : min($nextAt, $w['at']);
         }
 
-        $now = microtime(true);
-        $sec = 1;
-        $usec = 0;
-        if ($nextAt !== null) {
-            $diff = max(0, $nextAt - $now);
-            $sec = (int) $diff;
-            $usec = (int) (($diff - $sec) * 1000000);
-        }
+        // У каждого ожидания есть 'at', поэтому $nextAt всегда задан
+        $timeout = max(0, $nextAt - microtime(true));
+        $sec = (int) $timeout;
+        $usec = (int) (($timeout - $sec) * 1000000);
 
         if ($read) {
             $write = null;
@@ -71,9 +67,8 @@ function runEventLoop(): void
         foreach ($waiting as $i => $w) {
             $event = null;
             if ($w['kind'] === 'read') {
-                $meta = stream_get_meta_data($w['stream']);
                 if (in_array($w['stream'], $read, true)) {
-                    $event = $meta['eof'] ? 'eof' : 'ready';
+                    $event = feof($w['stream']) ? 'eof' : 'ready';
                 } elseif ($now >= $w['at']) {
                     $event = 'timeout';
                 }
