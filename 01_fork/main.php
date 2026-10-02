@@ -12,7 +12,7 @@ for ($i = 1; $i <= 2; $i++) {
 
         for ($j = 0; $j < 10; $j++) {
             echo "child $i process: " . $j . "\n";
-            usleep(2000000);
+            sleep(2);
         }
         echo "child $i done\n";
         exit(0);
@@ -23,7 +23,7 @@ echo "parent process: " . getmypid() . "\n";
 
 for ($i = 0; $i < 10; $i++) {
     echo "parent process: " . $i . "\n";
-    usleep(1000000);
+    sleep(1);
 }
 
 echo "waiting for child...\n";
@@ -42,7 +42,7 @@ echo "waiting for child...\n";
 //
 // tini (минимальный init, ~7KB) висит в цикле wait(), репнит сирот мгновенно
 // и корректно прокидывает сигналы. Решает обе проблемы одной строкой.
-while (pcntl_wait($status) !== -1) {
-    // optional: логика на каждый вышедший процесс
-    echo "child exited with status: $status\n";
+// $status — «сырой» статус ядра; код выхода из него достаёт pcntl_wexitstatus()
+while (($pid = pcntl_wait($status)) !== -1) {
+    echo "child $pid exited with code " . pcntl_wexitstatus($status) . "\n";
 }
