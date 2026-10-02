@@ -3,24 +3,15 @@
 // Master-Worker: мастер раздаёт задачи через taskQueue, управляет через
 // ctrlQueue, воркеры отправляют результаты через resultQueue.
 
-pcntl_async_signals(true);
-
 const TASK_COUNT = 12;
 const WORKER_COUNT = 3;
 const TERMINATOR_CTRL = "\0__CTRL_STOP__\0";
 const TERMINATOR_RESULT = '__TERM_RESULT__';
 
-function initQueue(string $proj): SysvMessageQueue
-{
-    return msg_get_queue(ftok(__FILE__, $proj), 0666);
-}
-
-function removeQueue(SysvMessageQueue $queue): bool
-{
-    return msg_remove_queue($queue);
-}
-
-// Worker: забирает задачи из taskQueue (доедает), проверяет ctrlQueue на останов
+// Worker: забирает задачи из taskQueue; получив STOP из ctrlQueue, доедает
+// taskQueue и только потом выходит. Мастер шлёт STOP после всех задач, поэтому
+// пустая taskQueue ПОСЛЕ STOP значит «задач больше не будет». Выход сразу по
+// STOP терял бы задачу, отправленную между проверкой taskQueue и ctrlQueue.
 function worker(SysvMessageQueue $ctrlQueue, SysvMessageQueue $taskQueue, SysvMessageQueue $resultQueue, int $id): int
 {
     $pid = pcntl_fork();
@@ -30,13 +21,9 @@ function worker(SysvMessageQueue $ctrlQueue, SysvMessageQueue $taskQueue, SysvMe
     }
 
     if ($pid === 0) {
+        $stopping = false;
         while (true) {
-            $msgType = 0;
-            $msg = '';
-            $error = null;
-
-            $received = msg_receive($taskQueue, 0, $msgType, 1024, $msg, true, MSG_IPC_NOWAIT, $error);
-            if ($received) {
+            if (msg_receive($taskQueue, 0, $msgType, 1024, $msg, true, MSG_IPC_NOWAIT)) {
                 $result = (int)$msg * 2;
                 echo "Worker$id (" . getmypid() . "): $msg -> $result\n";
                 msg_send($resultQueue, 1, $result);
@@ -44,10 +31,14 @@ function worker(SysvMessageQueue $ctrlQueue, SysvMessageQueue $taskQueue, SysvMe
                 continue;
             }
 
-            $received = msg_receive($ctrlQueue, 0, $msgType, 1024, $msg, true, MSG_IPC_NOWAIT, $error);
-            if ($received && $msg === TERMINATOR_CTRL) {
+            if ($stopping) {
                 msg_send($resultQueue, 1, TERMINATOR_RESULT);
                 break;
+            }
+
+            if (msg_receive($ctrlQueue, 0, $msgType, 1024, $msg, true, MSG_IPC_NOWAIT) && $msg === TERMINATOR_CTRL) {
+                $stopping = true;
+                continue;
             }
 
             usleep(10000);
@@ -58,9 +49,9 @@ function worker(SysvMessageQueue $ctrlQueue, SysvMessageQueue $taskQueue, SysvMe
     return $pid;
 }
 
-$ctrlQueue = initQueue('c');
-$taskQueue = initQueue('t');
-$resultQueue = initQueue('r');
+$ctrlQueue = msg_get_queue(ftok(__FILE__, 'c'), 0666);
+$taskQueue = msg_get_queue(ftok(__FILE__, 't'), 0666);
+$resultQueue = msg_get_queue(ftok(__FILE__, 'r'), 0666);
 
 $workerPids = [];
 for ($i = 1; $i <= WORKER_COUNT; $i++) {
@@ -82,28 +73,19 @@ for ($i = 0; $i < WORKER_COUNT; $i++) {
 // Master: собирает результаты
 $terminatorsBack = 0;
 while ($terminatorsBack < WORKER_COUNT) {
-    $msgType = 0;
-    $msg = '';
-    $error = null;
-
-    $received = msg_receive($resultQueue, 0, $msgType, 1024, $msg, true, MSG_IPC_NOWAIT, $error);
-    if ($received) {
-        if ($msg === TERMINATOR_RESULT) {
-            $terminatorsBack++;
-            echo "Master: terminators back ($terminatorsBack/" . WORKER_COUNT . ")\n";
-        } else {
-            echo "Master: collected result [$msg]\n";
-        }
-        continue;
+    msg_receive($resultQueue, 0, $msgType, 1024, $msg);
+    if ($msg === TERMINATOR_RESULT) {
+        $terminatorsBack++;
+        echo "Master: terminators back ($terminatorsBack/" . WORKER_COUNT . ")\n";
+    } else {
+        echo "Master: collected result [$msg]\n";
     }
-
-    usleep(10000);
 }
 
 foreach ($workerPids as $pid) {
     pcntl_waitpid($pid, $status);
 }
 
-removeQueue($ctrlQueue);
-removeQueue($taskQueue);
-removeQueue($resultQueue);
+msg_remove_queue($ctrlQueue);
+msg_remove_queue($taskQueue);
+msg_remove_queue($resultQueue);
