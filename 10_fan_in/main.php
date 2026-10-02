@@ -1,22 +1,17 @@
 <?php
 
 // Fan-In: N worker'ов пишут результат в shared memory, родитель собирает.
+// Каждый пишет в свой слот, но shm_put_var() правит общий заголовок сегмента
+// (смещение конца данных) — две одновременные записи даже в разные ключи
+// могут затереть друг друга. Поэтому запись — под семафором.
 
 const WORKER_COUNT = 3;
 
-function initSharedMemory(): SysvSharedMemory
-{
-    $shmKey = ftok(__FILE__, 's');
-    $shmId = shm_attach($shmKey, 1024, 0644);
-    if (!$shmId) {
-        die('shm_attach failed');
-    }
-
-    return $shmId;
-}
+$shmId = shm_attach(ftok(__FILE__, 's'), 1024, 0644);
+$sem = sem_get(ftok(__FILE__, 'l'), 1, 0666);
 
 // Worker: пишет результат в shared memory под своим ключом $wId
-function worker(SysvSharedMemory $shmId, int $wId): int
+function worker(SysvSharedMemory $shmId, SysvSemaphore $sem, int $wId): int
 {
     $pid = pcntl_fork();
 
@@ -27,8 +22,9 @@ function worker(SysvSharedMemory $shmId, int $wId): int
     if ($pid === 0) {
         usleep(rand(50000, 200000));
 
+        sem_acquire($sem);
         shm_put_var($shmId, $wId, "Worker$wId");
-        shm_detach($shmId);
+        sem_release($sem);
 
         exit(0);
     }
@@ -36,11 +32,9 @@ function worker(SysvSharedMemory $shmId, int $wId): int
     return $pid;
 }
 
-$sharedMemory = initSharedMemory();
-
 $workerPids = [];
 for ($i = 1; $i <= WORKER_COUNT; $i++) {
-    $workerPids[] = worker($sharedMemory, $i);
+    $workerPids[] = worker($shmId, $sem, $i);
 }
 
 // Ждём worker'ов
@@ -50,8 +44,8 @@ foreach ($workerPids as $pid) {
 
 // Читаем результаты из shared memory по ключам 1..N
 for ($i = 1; $i <= WORKER_COUNT; $i++) {
-    echo shm_get_var($sharedMemory, $i) . "\n";
+    echo shm_get_var($shmId, $i) . "\n";
 }
 
-shm_remove($sharedMemory);
-shm_detach($sharedMemory);
+shm_remove($shmId);
+sem_remove($sem);
