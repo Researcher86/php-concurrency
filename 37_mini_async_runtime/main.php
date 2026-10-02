@@ -18,34 +18,29 @@ const TASK_IO_MS = 300;
 $waiting = [];
 $timers = []; // [due(ts), callback] — задачи, готовые в будущий момент времени
 
-function scheduleEvent(array $ev, ?callable $onResume = null): void
+// $at — дедлайн: для read/write это таймаут ожидания, для timer — момент срабатывания
+function scheduleEvent(string $kind, $stream, float $at): void
 {
     global $waiting;
-    $waiting[] = [
-        'kind' => $ev[0],
-        'stream' => $ev[1] ?? null,
-        'at' => $ev[2] ?? null,
-        'fiber' => Fiber::getCurrent(),
-        'onResume' => $onResume,
-    ];
+    $waiting[] = ['kind' => $kind, 'stream' => $stream, 'at' => $at, 'fiber' => Fiber::getCurrent()];
 }
 
 // ---------- 2. Фибры: awaitRead / awaitWrite / awaitMs ----------
 function awaitRead($stream, float $timeoutSec = 2.0): string
 {
-    scheduleEvent(['read', $stream, microtime(true) + $timeoutSec]);
+    scheduleEvent('read', $stream, microtime(true) + $timeoutSec);
     return Fiber::suspend(); // 'ready' | 'timeout'
 }
 
 function awaitWrite($stream, float $timeoutSec = 2.0): string
 {
-    scheduleEvent(['write', $stream, microtime(true) + $timeoutSec]);
+    scheduleEvent('write', $stream, microtime(true) + $timeoutSec);
     return Fiber::suspend(); // 'ready' | 'timeout'
 }
 
 function awaitMs(int $ms): void
 {
-    scheduleEvent(['timer', null, microtime(true) + $ms / 1000]);
+    scheduleEvent('timer', null, microtime(true) + $ms / 1000);
     Fiber::suspend(); // 'tick'
 }
 
@@ -117,24 +112,17 @@ function runLoop(int $maxMs = 10000): void
 
         // Фибры
         foreach ($waiting as $i => $w) {
-            $event = null;
-            if ($w['kind'] === 'read') {
-                if (in_array($w['stream'], $read, true)) {
-                    $event = 'ready';
-                } elseif ($now >= $w['at']) {
-                    $event = 'timeout';
-                }
-            } elseif ($w['kind'] === 'write') {
-                if (in_array($w['stream'], $write, true)) {
-                    $event = 'ready';
-                } elseif ($now >= $w['at']) {
-                    $event = 'timeout';
-                }
-            } elseif ($w['kind'] === 'timer') {
-                if ($now >= $w['at']) {
-                    $event = 'tick';
-                }
-            }
+            $ready = match ($w['kind']) {
+                'read' => in_array($w['stream'], $read, true),
+                'write' => in_array($w['stream'], $write, true),
+                'timer' => false,
+            };
+            $event = match (true) {
+                $ready => 'ready',
+                $now < $w['at'] => null,
+                $w['kind'] === 'timer' => 'tick',
+                default => 'timeout',
+            };
             if ($event !== null) {
                 $w['fiber']->resume($event);
                 unset($waiting[$i]);
@@ -187,6 +175,7 @@ foreach ($workerStreams as $i => $stream) {
             }
             $line = fgets($stream);
             if ($line === false) {   // EOF: клиент закрыл канал
+                fclose($stream);
                 break;
             }
             echo "  [worker{$i}] получил '" . rtrim($line, "\n") . "', обрабатываю\n";
