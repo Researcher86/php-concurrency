@@ -7,7 +7,10 @@
 
 pcntl_async_signals(true);
 
-function worker(SysvMessageQueue $queue, callable $callback, bool &$isStopWorker): int
+const WORKER_COUNT = 6;
+const TASK_COUNT = 50;
+
+function worker(SysvMessageQueue $queue, callable $handle, bool &$isStopWorker): int
 {
     $pid = pcntl_fork();
 
@@ -16,36 +19,27 @@ function worker(SysvMessageQueue $queue, callable $callback, bool &$isStopWorker
     }
 
     if ($pid === 0) {
-        // $isStopWorker передаём в worker() по ссылке: до fork параметр привязан к одноимённой
-        // переменной мастера, а после fork ребёнок наследует собственный экземпляр — fork копирует
-        // всю память вместе со связями ссылок, и хендлер $workerStopHandler (use (&$isStopWorker))
-        // пишет в тот же zval, который читает цикл ниже. НЕ присваиваем $isStopWorker = false здесь:
-        // сброс после fork открыл бы окно, в котором SIGTERM от stopWorkers() поставил бы true,
-        // а затем обнулился — сигнал терялся бы, и воркер навсегда вис бы в msg_receive(). Это и был «hang».
+        // $isStopWorker приходит по ссылке: fork копирует память вместе со связями
+        // ссылок, так что хендлер $workerStopHandler (use (&$isStopWorker)) пишет
+        // в тот же zval, который читает цикл ниже. НЕ сбрасываем флаг здесь: сброс
+        // после fork открыл бы окно, в котором SIGTERM от мастера поставил бы true,
+        // а затем обнулился — воркер бы навсегда завис («hang»).
 
-        // SIGTERM-хендлер ребёнок наследует от мастера ($workerStopHandler) — он правильный с
-        // самого рождения, окна default-диспозиции нет вовсе. Перекрываем только SIGINT: Ctrl+C
-        // терминал шлёт всей группе, но воркер его игнорирует — остановкой детей занимается мастер.
+        // SIGTERM-хендлер унаследован от мастера и правилен с самого рождения.
+        // Перекрываем только SIGINT: Ctrl+C терминал шлёт всей группе, но
+        // остановкой детей занимается мастер.
         pcntl_signal(SIGINT, SIG_IGN);
 
         while (true) {
-            $msgType = 0;
-            $msg = '';
-            $error = null;
-
-            // Полностью неблокирующий приём (MSG_IPC_NOWAIT): msg_receive никогда не ждёт,
-            // а мгновенно возвращает сообщение или false. Если задач нет — спим 10мс (usleep)
-            // и опрашиваем снова. Сигналы при pcntl_async_signals только выставляют флаги:
-            // никакого EINTR и зависимости от прерывания блокирующего вызова — флаг читаем
-            // на каждой итерации. Режим drain ($isStopWorker): продолжаем опрашивать и доедаем
-            // очередь, выходим, когда она пуста.
-            $received = msg_receive($queue, 0, $msgType, 1024, $msg, true, MSG_IPC_NOWAIT, $error);
-            if ($received) {
-                $callback($msgType, $msg, $error);
+            // Неблокирующий приём (MSG_IPC_NOWAIT): сообщение или сразу false.
+            // Сигналы при pcntl_async_signals лишь выставляют флаг — никакой
+            // зависимости от EINTR в блокирующем вызове, флаг читаем на каждой
+            // итерации. Drain: после SIGTERM доедаем очередь и выходим, когда она пуста.
+            if (msg_receive($queue, 0, $msgType, 1024, $msg, true, MSG_IPC_NOWAIT)) {
+                $handle($msgType, $msg);
                 continue; // очередь ещё может быть непуста — опрашиваем без паузы
             }
 
-            // Очередь пуста.
             if ($isStopWorker) {
                 break; // drain завершён — все отправленные задачи обработаны
             }
@@ -66,73 +60,51 @@ function stopWorkers(array $workersPids): void
     }
 }
 
-function wait(): void
-{
-    // Ждём всех детей
-    while (pcntl_wait($status) !== -1) {
-        // reap
-    }
-}
-
 $queue = msg_get_queue(ftok(__FILE__, 'm'), 0666);
 
 $workersPids = [];
 $isStopMaster = false;
-// Флаг воркера объявляем ДО fork(): дети наследуют его уже равным false. Сброс в ветке ребёнка
-// после fork снова открыл бы окно (SIGTERM ставит true, потом сброс обнуляет) — из-за него висло.
+// Флаг воркера объявляем ДО fork(): дети наследуют его уже равным false.
 $isStopWorker = false;
 
-// Оба хендлера объявляем ДО worker(): диспозиции наследуются при fork.
-// На SIGTERM/SIGINT сначала вешаем worker-хендлер: тогда каждый ребёнок рождается уже с правильной
-// диспозицией и флагом false, и не остаётся окна, где ранний SIGTERM от stopWorkers() съедался бы
-// «плейсхолдером» (унаследованным хендлером мастера) и не выставлял бы $isStopWorker.
+// Хендлер воркера вешаем ДО fork: каждый ребёнок рождается с правильной
+// диспозицией, и ранний SIGTERM не съедается хендлером мастера.
 $workerStopHandler = function ($signo) use (&$isStopWorker) {
     $isStopWorker = true;
     echo 'Worker ' . getmypid() . ": got stop signal ($signo)\n";
 };
-$masterStopHandler = function ($signo) use (&$isStopMaster, &$workersPids) {
-    $isStopMaster = true;
-    echo 'Master ' . getmypid() . ": got $signo, stopping workers with SIGTERM\n";
-    foreach ($workersPids as $pid) {
-        posix_kill($pid, SIGTERM);
-    }
-};
 pcntl_signal(SIGTERM, $workerStopHandler);
 pcntl_signal(SIGINT, $workerStopHandler);
 
-$workerCallback = function ($msgType, $msg, $error) {
+$handle = function ($msgType, $msg) {
     echo 'Worker ' . getmypid() . ": received [$msgType] $msg\n";
     usleep(500000);
 };
 
-$workersPids[] = worker($queue, $workerCallback, $isStopWorker);
-$workersPids[] = worker($queue, $workerCallback, $isStopWorker);
-$workersPids[] = worker($queue, $workerCallback, $isStopWorker);
-$workersPids[] = worker($queue, $workerCallback, $isStopWorker);
-$workersPids[] = worker($queue, $workerCallback, $isStopWorker);
-$workersPids[] = worker($queue, $workerCallback, $isStopWorker);
+for ($i = 0; $i < WORKER_COUNT; $i++) {
+    $workersPids[] = worker($queue, $handle, $isStopWorker);
+}
 
-// Все дети уже созданы. Перевешиваем хендлеры ТОЛЬКО у мастера (на детей это не влияет):
-// его SIGTERM/SIGINT теперь = «разослать SIGTERM воркерам и выйти», а не «выйти самому».
+// Все дети созданы — перевешиваем хендлеры ТОЛЬКО у мастера (на детей это не
+// влияет): его SIGTERM/SIGINT теперь = «прекратить отправку», а не «выйти самому».
+$masterStopHandler = function ($signo) use (&$isStopMaster) {
+    $isStopMaster = true;
+    echo 'Master ' . getmypid() . ": got $signo, stopping workers with SIGTERM\n";
+};
 pcntl_signal(SIGTERM, $masterStopHandler);
 pcntl_signal(SIGINT, $masterStopHandler);
 
-// Producer кладёт n сообщений
-for ($i = 1; $i <= 50; $i++) {
-    if ($isStopMaster) {
-        break;
-    }
-
+// Producer кладёт задачи, пока не пришёл внешний сигнал
+for ($i = 1; $i <= TASK_COUNT && !$isStopMaster; $i++) {
     $msg = "Task $i";
     msg_send($queue, 1, $msg);
     echo 'Producer ' . getmypid() . ": sent $msg\n";
 }
 
-// Если пришёл внешний сигнал (SIGTERM/SIGINT), $masterStopHandler уже отправил воркерам SIGTERM
-// и выставит $isStopMaster. Повторно стопать не нужно, иначе воркер получит сигнал дважды.
-if (!$isStopMaster) {
-    stopWorkers($workersPids);
-}
+// Штатно или по сигналу — воркерам один раз шлём SIGTERM: они доедают очередь
+stopWorkers($workersPids);
 
-wait();
+while (pcntl_wait($status) !== -1) {
+    // reap
+}
 msg_remove_queue($queue);
