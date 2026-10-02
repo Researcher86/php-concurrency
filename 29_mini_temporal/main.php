@@ -99,18 +99,28 @@ function nextId(): int
 }
 
 // Ждём именно ответ на $expectedId; всё остальное — устаревший ответ
-// от прошлой активности — вычитываем и отбрасываем, продолжая ждать.
-function receiveResult(SysvMessageQueue $resultQueue, int $expectedId): string
+// от прошлой активности (например, опоздавший SlowCheck) — вычитываем и
+// отбрасываем, продолжая ждать. Без $timeoutUs ждём блокирующе; с ним —
+// опрашиваем до дедлайна и возвращаем null по таймауту.
+function receiveResult(SysvMessageQueue $resultQueue, int $expectedId, ?int $timeoutUs = null): ?string
 {
+    $deadline = $timeoutUs === null ? null : hrtime(true) + $timeoutUs * 1000;
+    $flags = $deadline === null ? 0 : MSG_IPC_NOWAIT;
+
     while (true) {
         $reply = null;
-        msg_receive($resultQueue, 1, $type, 1024, $reply);
-
-        if (($reply['id'] ?? null) === $expectedId) {
-            return $reply['status'];
+        if (msg_receive($resultQueue, 1, $type, 1024, $reply, true, $flags)) {
+            if (($reply['id'] ?? null) === $expectedId) {
+                return $reply['status'];
+            }
+            echo 'Engine: discarding stale result (id=' . ($reply['id'] ?? '?') . ")\n";
+            continue;
         }
 
-        echo 'Engine: discarding stale result (id=' . ($reply['id'] ?? '?') . ")\n";
+        if ($deadline !== null && hrtime(true) >= $deadline) {
+            return null;
+        }
+        usleep(10000);
     }
 }
 
@@ -138,36 +148,19 @@ function runActivityWithTimeout(SysvMessageQueue $taskQueue, SysvMessageQueue $r
 {
     $id = nextId();
     msg_send($taskQueue, 1, ['id' => $id, 'name' => $name, 'attempt' => 1]);
-    $deadline = hrtime(true) + TIMEOUT_US * 1000;
 
-    while (true) {
-        $reply = null;
-        if (msg_receive($resultQueue, 1, $type, 1024, $reply, true, MSG_IPC_NOWAIT)) {
-            if (($reply['id'] ?? null) === $id) {
-                echo "Engine: '$name' OK\n";
-                return true;
-            }
-            // Чужой/устаревший ответ (например, опоздавший SlowCheck) — отбрасываем и ждём дальше
-            echo 'Engine: discarding stale result (id=' . ($reply['id'] ?? '?') . ")\n";
-            continue;
-        }
-
-        if (hrtime(true) >= $deadline) {
-            echo "Engine: '$name' TIMED OUT\n";
-            return false;
-        }
-        usleep(10000);
+    if (receiveResult($resultQueue, $id, TIMEOUT_US) === null) {
+        echo "Engine: '$name' TIMED OUT\n";
+        return false;
     }
+    echo "Engine: '$name' OK\n";
+    return true;
 }
 
 // Проверка сигнала отмены (неблокирующая)
 function checkCancel(SysvMessageQueue $signalQueue): bool
 {
-    $msg = '';
-    if (msg_receive($signalQueue, 1, $type, 1024, $msg, true, MSG_IPC_NOWAIT)) {
-        return $msg === 'cancel';
-    }
-    return false;
+    return msg_receive($signalQueue, 1, $type, 1024, $msg, true, MSG_IPC_NOWAIT) && $msg === 'cancel';
 }
 
 // ---- Workflow 1: retry (Charge падает 2 раза, потом успех) ----
