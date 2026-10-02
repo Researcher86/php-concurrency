@@ -42,7 +42,7 @@ for ($w = 1; $w <= WORKER_COUNT; $w++) {
             $msg = '';
             msg_receive($workerQueues[$w], 1, $type, 1024, $msg);
 
-            if ($msg === 'STOP') {
+            if ($msg === TERMINATOR) {
                 break;
             }
             echo "Worker$w: processed $msg\n";
@@ -54,8 +54,7 @@ for ($w = 1; $w <= WORKER_COUNT; $w++) {
 }
 
 // Scheduler (родитель): round-robin раздача
-$rr = 0;
-while (true) {
+for ($rr = 0; ; $rr++) {
     $msg = '';
     msg_receive($taskQueue, 1, $type, 1024, $msg);
 
@@ -63,14 +62,13 @@ while (true) {
         break;
     }
     $w = ($rr % WORKER_COUNT) + 1;
-    $rr++;
     msg_send($workerQueues[$w], 1, $msg);
     echo "Scheduler: $msg -> Worker$w (round-robin)\n";
 }
 
 // Завершение
 foreach ($workerQueues as $queue) {
-    msg_send($queue, 1, 'STOP');
+    msg_send($queue, 1, TERMINATOR);
 }
 
 pcntl_waitpid($sourcePid, $status);

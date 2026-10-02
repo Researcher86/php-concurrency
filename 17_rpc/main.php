@@ -17,8 +17,8 @@ if ($serverPid === 0) {
     $procedures = [
         'add' => fn($a, $b) => $a + $b,
         'multiply' => fn($a, $b) => $a * $b,
-        'upper' => fn($s) => strtoupper($s),
-        'strlen' => fn($s) => strlen($s),
+        'upper' => strtoupper(...),
+        'strlen' => strlen(...),
         'divide' => fn($a, $b) => $a / $b,
     ];
 
@@ -37,7 +37,7 @@ if ($serverPid === 0) {
             $resp = ['id' => $id, 'error' => "unknown procedure '{$call['proc']}'"];
         } else {
             try {
-                $result = call_user_func_array($procedures[$call['proc']], $call['args']);
+                $result = $procedures[$call['proc']](...$call['args']);
                 $resp = ['id' => $id, 'result' => $result];
             } catch (Throwable $e) {
                 $resp = ['id' => $id, 'error' => $e->getMessage()];

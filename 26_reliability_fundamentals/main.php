@@ -171,7 +171,7 @@ $shm = shm_attach(ftok(__FILE__, 'h'), 1024, 0666);
 $sem = sem_get(ftok(__FILE__, 'i'), 1, 0666);
 shm_put_var($shm, 1001, 0); // счётчик эффектов (общий между процессами)
 
-function charge(string $key, $shm, $sem): void
+function charge(string $key, SysvSharedMemory $shm, SysvSemaphore $sem): void
 {
     sem_acquire($sem);                          // критическая секция
     // Учебное упрощение: slot по crc32 % 1000 может коллизировать для разных

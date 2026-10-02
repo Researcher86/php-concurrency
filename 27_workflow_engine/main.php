@@ -43,8 +43,7 @@ function runWorkflow(array $definition): array
             die('fork failed');
         }
         if ($pid === 0) {
-            $ok = call_user_func($step['work']);
-            exit($ok ? 0 : 1);
+            exit($step['work']() ? 0 : 1);
         }
 
         pcntl_waitpid($pid, $status);

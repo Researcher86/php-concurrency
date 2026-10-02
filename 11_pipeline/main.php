@@ -4,8 +4,6 @@
 // Каждая стадия — отдельный процесс; данные идут по socket-парам,
 // очередная стадия читает из своего in и пишет в out.
 
-pcntl_async_signals(true);
-
 const DATA_COUNT = 5;
 
 // Создаём pipe-пары (как | в шелле): [readEnd, writeEnd]
