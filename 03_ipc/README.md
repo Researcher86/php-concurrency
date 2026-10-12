@@ -10,14 +10,14 @@
 
 ## Как работает
 
-В папке 6 независимых файлов:
+В папке 6 независимых файлов и `main.php`, который запускает их по очереди:
 
 | Файл | Механизм | Суть |
 |------|----------|------|
 | `msg_queue.php` | System V очередь | сообщения в ядре, не привязаны к процессу-создателю |
 | `pipe.php` | Unix socket pair | пара соединённых двунаправленных сокетов |
 | `semaphore.php` | System V семафор | атомарный доступ к критической секции |
-| `shmop.php` | Shared memory | общий сегмент памяти для всех процессов (sysvshm API, см. ниже) |
+| `sysvshm.php` | Shared memory | общий сегмент памяти для всех процессов (sysvshm API, см. ниже) |
 | `signals.php` | Сигналы | только событие, без данных (`posix_kill`) |
 | `unix_socket.php` | AF_UNIX сокет | файл в /tmp как точка входа в канал |
 
@@ -29,8 +29,8 @@
 - `pipe.php`: `stream_socket_pair` — это **не** классический `pipe()`: socket pair
   двунаправленный, а `pipe()` однонаправленный (read-конец + write-конец).
 - `semaphore`: `sem_get`, `sem_acquire`, `sem_release`, `sem_remove`.
-- `shmop`: `shm_attach`, `shm_put_var`, `shm_get_var`, `shm_remove` — это API
-  расширения **sysvshm** (переменные). Несмотря на имя файла, это не функции
+- `sysvshm`: `shm_attach`, `shm_put_var`, `shm_get_var`, `shm_remove` — это API
+  расширения **sysvshm** (переменные). Это не функции
   `shmop_open`/`shmop_read`/`shmop_write` из расширения `ext-shmop` (байты) —
   разные расширения, у обоих в названии "shm".
 - `signals`: `pcntl_signal`, `pcntl_signal_dispatch` (ручной опрос в цикле, а
@@ -44,17 +44,24 @@
 
 ## Запуск
 
+Все шесть демо подряд, в порядке `diagram.txt` (каждое — отдельным процессом PHP):
+
 ```bash
-for f in msg_queue pipe semaphore shmop signals unix_socket; do
-  docker compose exec -T php php /app/03_ipc/$f.php
-done
+docker compose exec -T php php /app/03_ipc/main.php
+```
+
+Одно демо — по имени файла без `.php` (или напрямую):
+
+```bash
+docker compose exec -T php php /app/03_ipc/main.php sysvshm
+docker compose exec -T php php /app/03_ipc/sysvshm.php
 ```
 
 ## Что попробовать изменить
 
 - В `semaphore.php` убрать `sem_acquire`/`sem_release` и убедиться, что счётчик
   перестаёт быть 15 (гонка).
-- В `shmop.php` поменять местами читателя и писателя — читатель увидит пустоту.
+- В `sysvshm.php` поменять местами читателя и писателя — читатель увидит пустоту.
 - В `msg_queue.php` не вызывать `msg_remove_queue` и проверить `ipcs -q`.
 
 ## Complexity / Failure modes / Guarantees

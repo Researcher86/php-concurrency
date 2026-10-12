@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 // Producer-Consumer: N producer'ов шлют сообщения в общую очередь,
 // M консюмеров их разбирают (competing consumers). Завершение — по
 // terminator'у на каждого консюмера, отправленному после всех продюсеров.

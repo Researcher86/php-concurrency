@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 // Circuit Breaker (предохранитель): защищает вызовы к "зависимости" (сервису).
 //   - CLOSED    — запросы проходят; FAILURE_THRESHOLD ошибок подряд -> OPEN
 //   - OPEN      — запросы НЕ отправляются (fail fast), ждём cooldown -> HALF_OPEN

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 // Workflow Engine (движок рабочих процессов):
 //   - Workflow Definition — описание шагов (Start → Step1 → Step2 → End).
 //   - Каждый шаг выполняется как Activity в отдельном дочернем процессе.

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 // Pub-Sub: два publisher'а шлют сообщения по темам alpha и beta.
 // S1 подписан на alpha, S2 — на alpha + beta. Каждый subscriber
 // получает свою копию через отдельный pipe.

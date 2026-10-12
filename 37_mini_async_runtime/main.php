@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 // Mini Async Runtime: capstone второй половины курса. Один процесс, один
 // поток, но много задач. Компоненты:
 //   - event loop (stream_select + таймеры),

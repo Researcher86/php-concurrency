@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 // Unix socket pair (stream_socket_pair) — пара соединённых сокетов.
 //
 // ВАЖНО: это НЕ классический pipe(). Разница:

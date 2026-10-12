@@ -9,10 +9,10 @@
 помогает понять, как работают механизмы конкурентности, реализуя их с нуля.
 
 38 уроков: от `pcntl_fork` и процессного IPC до мини-рантайма в духе
-PHP-FPM/RoadRunner, затем фиберы и собственный асинхронный runtime (PHP 8.1+).
+PHP-FPM/RoadRunner, затем фиберы и собственный асинхронный runtime.
 
 Каждый урок — папка с `README.md` (мини-учебник), `diagram.txt` (ASCII-схема
-паттерна) и работающим `main.php` (или набором файлов), который можно запустить
+паттерна) и работающим `main.php` (в 03 — ещё и шесть отдельных демо), который можно запустить
 в Docker. Курс построен по частям (Процессы → Распределение → Координация →
 Надёжность → Workflows → Runtime → Fibers & Async → Choosing the Model), но
 каждый урок можно запускать отдельно.
@@ -22,7 +22,9 @@ PHP-FPM/RoadRunner, затем фиберы и собственный асинх
 
 - Docker + Docker Compose (образ: `php:8.5-cli` с расширениями `pcntl`, `posix`,
   `sysvmsg`, `sysvsem`, `sysvshm`, xdebug).
-- Уроки 33–38 требуют PHP ≥ 8.1 (фиберы); в образе уже 8.5.
+- Курс написан и проверяется на PHP 8.5 — версии образа. Минимум для запуска
+  вне Docker — PHP 8.3: сам `Fiber` (уроки 33–38) появился в 8.1, но урок 38
+  выравнивает таблицу через `mb_str_pad`, который есть только с 8.3.
 
 ## Запуск
 
@@ -48,6 +50,33 @@ docker compose exec -T php sh -c \
   'php /app/04_supervisor/main.php & PID=$!; sleep 3; kill -TERM $PID; wait $PID'
 ```
 
+Проверки всего курса (их же запускает CI, `.github/workflows/ci.yml`):
+
+```bash
+make lint    # php -l по всем .php курса
+make smoke   # несколько быстрых уроков целиком, каждый с таймаутом
+```
+
+### Отладка (Xdebug)
+
+Xdebug в образе стоит в режиме `xdebug.start_with_request=trigger`: к отладчику
+подключается только процесс, у которого выставлен `XDEBUG_TRIGGER`. Режим
+`yes` здесь не годится — уроки форкают воркеров, и тогда *каждый* процесс
+пытается подключиться к отладчику, которого обычно никто не слушает.
+
+1. В IDE включи прослушивание Xdebug на порту 9003 (в PhpStorm — server name
+   `php-concurrency`, маппинг корня проекта на `/app`).
+2. Запусти урок с триггером:
+
+```bash
+make debug LESSON=13_scheduler/main.php
+# то же самое вручную:
+docker compose exec php bash -c 'XDEBUG_TRIGGER=1 php 13_scheduler/main.php'
+```
+
+Если IDE не слушает порт, попытка подключения просто не удаётся, и урок идёт
+дальше.
+
 > Очереди System V (`msg_*`) живут дольше процесса. Если урок был прерван и
 > `msg_remove_queue()` не отработал, чистят вручную:
 > `ipcs -q` → `ipcrm -q <id>`. Зависшие процессы: `pkill -9 -f main.php`.
@@ -60,7 +89,7 @@ docker compose exec -T php sh -c \
 |---|-------|------|-----------|
 | 01 | `01_fork` | Fork | `pcntl_fork`, разделение кода на родителя/ребёнка |
 | 02 | `02_process_lifecycle` | Process Lifecycle | exit → SIGCHLD → waitpid → reap, zombie, reap-all |
-| 03 | `03_ipc` | IPC | `msg_queue`, `pipe`, `semaphore`, `shmop`, `signals`, `unix_socket` |
+| 03 | `03_ipc` | IPC | `msg_queue`, `pipe`, `semaphore`, `sysvshm`, `signals`, `unix_socket` |
 | 04 | `04_supervisor` | Supervisor | WNOHANG-мониторинг и перезапуск умерших (демон) |
 
 ### Part II — Work Distribution (распределение работы)

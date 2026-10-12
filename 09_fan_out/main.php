@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 // Fan-Out: source раздаёт задачи N worker'ам через общую очередь.
 // Каждый worker забирает следующую свободную задачу (competing consumers).
 

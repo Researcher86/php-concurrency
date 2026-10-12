@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 // Process Lifecycle: fork → run → exit → SIGCHLD → waitpid → reap.
 // Три мини-демо: нормальный жизненный цикл со сбором статуса, зомби
 // (ребёнок умер, родитель ещё не отрепил), reap-all через waitpid(-1)

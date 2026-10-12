@@ -57,4 +57,4 @@ API gateways (rate limiting), nginx `limit_req`, Redis rate limiting
 
 ## Что изучать дальше
 
-14 — barrier (тот же инструментарий: shm + sem); 03 — semaphore/shmop.
+14 — barrier (тот же инструментарий: shm + sem); 03 — semaphore/sysvshm.

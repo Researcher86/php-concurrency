@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 // System V очередь сообщений — очередь в ядре, не привязана к процессу-создателю.
 // В PHP это функции msg_get_queue/msg_send/msg_receive (SysV IPC).
 // POSIX message queues (mq_open/mq_send) — другой механизм, у PHP нет

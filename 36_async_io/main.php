@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 // Async I/O: свой userland-рантайм. await() прячет event loop за фиброй:
 // awaitRead($socket) = Fiber::suspend() -> stream_select() -> resume().
 // Клиенты (дочерние процессы) шлют запросы по unix socket pair,

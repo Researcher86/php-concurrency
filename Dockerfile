@@ -14,10 +14,14 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 ENV PHP_IDE_CONFIG serverName=php-concurrency
 
+# start_with_request=trigger, а не yes: уроки форкают процессы (воркеры,
+# пулы, мастер + N детей), и с "yes" КАЖДЫЙ из них пытается подключиться к
+# отладчику, который обычно никто не слушает. Отладка — по запросу:
+#   XDEBUG_TRIGGER=1 php 13_scheduler/main.php   (или make debug, см. README)
 RUN { \
         echo 'zend_extension=xdebug'; \
         echo 'xdebug.mode=debug'; \
-        echo 'xdebug.start_with_request=yes'; \
+        echo 'xdebug.start_with_request=trigger'; \
         echo 'xdebug.client_host=host.docker.internal'; \
         echo 'xdebug.client_port=9003'; \
         echo 'xdebug.discover_client_host=1'; \

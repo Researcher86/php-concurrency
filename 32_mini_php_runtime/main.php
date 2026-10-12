@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 // Mini PHP Runtime: мастер + пул persistent-воркеров + очередь запросов +
 // polling loop (опрос очереди) + supervisor (перезапуск упавших).
 // Модель PHP-FPM/RoadRunner.

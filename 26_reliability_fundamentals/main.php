@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 // Reliability Fundamentals: четыре базовые темы надёжности в одном уроке.
 //   1. Timeout          — ждём результат до дедлайна, поздний ответ игнорируем
 //   2. Cancellation     — cooperative (флаг/SIGTERM) против forced (SIGKILL)

@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  lessons:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Тот же образ и те же make-цели, что и локально: CI проверяет
+      # окружение, в котором курс на самом деле запускают.
+      - run: make build
+
+      # Синтаксис всех уроков (php -l).
+      - run: make lint
+
+      # Несколько быстрых уроков целиком, каждый с таймаутом.
+      - run: make smoke
+
+      - if: always()
+        run: make down

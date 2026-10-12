@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 // Event Loop + Fibers: фибры НЕ ждут "сами". Они запрашивают событие через
 // Fiber::suspend(['read', $stream]) / suspend(['timer', $at]), а event loop
 // (stream_select) решает, КОГДА их будить. Это связывает урок 18 с 33/34.

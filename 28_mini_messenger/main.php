@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 // Mini Messenger (мини-мессенджер):
 //   - Клиенты (User A/B/C) с собственными inbox'ами (отдельные очереди).
 //   - Message Broker (родитель) маршрутизирует сообщения:

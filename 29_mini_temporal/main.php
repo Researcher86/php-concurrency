@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 // Mini Temporal (Temporal-подобный оркестратор):
 //   - Workflow Engine (родитель) исполняет Workflow: по шагам (Activity)
 //     шлёт задачи в Task Queue и ждёт результат.

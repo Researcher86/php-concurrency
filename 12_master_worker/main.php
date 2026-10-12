@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 // Master-Worker: мастер раздаёт задачи через taskQueue, управляет через
 // ctrlQueue, воркеры отправляют результаты через resultQueue.
 

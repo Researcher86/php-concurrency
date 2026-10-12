@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 // Семафор — примитив синхронизации (sysvsem).
 // sem_acquire блокирует критическую секцию, sem_release освобождает её.
 //
@@ -20,7 +22,7 @@
 //    │             └─────────────┴──────────────── ...     (итог 15)
 //    ▼             ▼             ▼
 
-$sem = sem_get(ftok(__FILE__, 'a'), 1, 0666, 1);
+$sem = sem_get(ftok(__FILE__, 'a'), 1, 0666, true);
 $shmKey = ftok(__FILE__, 'b');
 $shmId = shm_attach($shmKey, 1024, 0644);
 shm_put_var($shmId, 1, 0);

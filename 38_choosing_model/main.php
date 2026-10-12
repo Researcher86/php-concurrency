@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 // Choosing the Model: сравниваем два подхода к конкурентности в PHP.
 // Процессы (pcntl) дают parallelism (CPU, изоляция), фибры — cooperative
 // concurrency на I/O-ожиданиях внутри одного процесса (мало памяти).

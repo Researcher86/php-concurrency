@@ -18,9 +18,9 @@ IPC (Inter-Process Communication)
    producer ──msg_send──▶ [queue] ◀──msg_receive── consumer
    (producer и consumer не знают друг о друге)
 
-4. shmop.php — общий сегмент shared memory (sysvshm: shm_attach/shm_put_var/
-   shm_get_var — переменные, а не байты; несмотря на имя файла, это НЕ
-   функции shmop_* из одноимённого расширения ext-shmop)
+4. sysvshm.php — общий сегмент shared memory (sysvshm: shm_attach/shm_put_var/
+   shm_get_var — переменные, а не байты; это НЕ функции shmop_* из
+   расширения ext-shmop)
    writer ──shm_put_var──▶ [shm] ◀──shm_get_var── reader
 
 5. semaphore.php — семафор защищает счётчик в shared memory

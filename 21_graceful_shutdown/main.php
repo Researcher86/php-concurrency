@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 // Graceful Shutdown (мягкое завершение): по SIGTERM мастер не просто выходит,
 // а проходит полный цикл:
 //   Stop accepting → Drain queue → Finish active → Close IPC → waitpid → exit.
