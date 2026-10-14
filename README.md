@@ -1,6 +1,6 @@
 # PHP Concurrency
 
-**[🧪 PHP Systems Lab](https://github.com/Researcher86/php-systems-lab)** · Уровень 2 из 8 · ← [`php-memory-lab`](https://github.com/Researcher86/php-memory-lab) · [`php-worker-pool`](https://github.com/Researcher86/php-worker-pool) →
+**[🧪 PHP Systems Lab](https://github.com/Researcher86/php-systems-lab)** · Уровень 2 из 9 · ← [`php-memory-lab`](https://github.com/Researcher86/php-memory-lab) · [`php-worker-pool`](https://github.com/Researcher86/php-worker-pool) →
 
 > Практический курс по конкурентности в PHP: от `pcntl` и IPC до Fibers,
 > event loop и асинхронного I/O.
@@ -217,13 +217,14 @@ latency) и показывает границы каждой модели.
 | 5 | 💾 [`php-mini-cache`](https://github.com/Researcher86/php-mini-cache) | event-driven in-memory сервер: RESP, pipelining, TTL, Pub/Sub |
 | 6 | 🌐 [`php-mini-http-server`](https://github.com/Researcher86/php-mini-http-server) | event-driven HTTP-сервер: парсинг, роутинг, middleware, keep-alive |
 | 7 | 🗄️ [`php-mini-database`](https://github.com/Researcher86/php-mini-database) | реляционный движок: страницы, B-деревья, SQL, транзакции, WAL, recovery |
-| 8 | 🏗️ [`php-systems-platform`](https://github.com/Researcher86/php-systems-platform) | интеграция компонентов в одну backend-платформу |
+| 8 | 🔎 [`php-mini-search`](https://github.com/Researcher86/php-mini-search) | полнотекстовый поиск: анализ текста, стемминг, инвертированный индекс, BM25, переиндексация |
+| 9 | 🏗️ [`php-systems-platform`](https://github.com/Researcher86/php-systems-platform) | интеграция компонентов в одну backend-платформу |
 
 Это учебные проекты, а не библиотеки: механизм переходит из одного в другой
 не кодом, а тем, что его прочитали в одном и переписали в следующем. Уровни
-1–7 не зависят друг от друга как пакеты. Только [`php-systems-platform`](https://github.com/Researcher86/php-systems-platform)
-подключает через Composer пять компонентов (пул воркеров, очередь задач, кэш,
-HTTP-сервер, базу данных) и запускает их вместе как одну систему.
+1–8 не зависят друг от друга как пакеты. Только [`php-systems-platform`](https://github.com/Researcher86/php-systems-platform)
+подключает через Composer шесть компонентов (пул воркеров, очередь задач, кэш,
+HTTP-сервер, базу данных, поиск) и запускает их вместе как одну систему.
 
 ### Как курс связан с остальными
 
